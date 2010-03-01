@@ -1,0 +1,15 @@
+## Interface: 30300
+## Title: XanDPS
+## Notes: A modified version of Tekkub PicoDPS to work without Databroker.
+## Author: Derkyle
+## Version: 1.8
+## SavedVariablesPerCharacter: XanDPS_DB
+
+localization\localization.lua
+
+Libs\LibStub.lua
+Libs\tektip.lua
+Libs\X_MenuClass.lua
+Libs\ChatThrottleLib.lua
+
+XanDPS.lua
