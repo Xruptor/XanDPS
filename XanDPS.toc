@@ -1,7 +1,7 @@
 ## Interface: 30300
 ## Title: XanDPS
 ## Notes: A modified version of Tekkub PicoDPS to work without Databroker.
-## Author: Derkyle
+## Author: Xruptor
 ## Version: 1.8
 ## SavedVariablesPerCharacter: XanDPS_DB
 
