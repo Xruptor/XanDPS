@@ -1,15 +1,13 @@
 ## Interface: 30300
 ## Title: XanDPS
-## Notes: A modified version of Tekkub PicoDPS to work without Databroker.
+## Notes: A very simple DPS meter inspired by PicoDPS and Skada.
 ## Author: Xruptor
-## Version: 1.8
+## Version: 2.0
 ## SavedVariablesPerCharacter: XanDPS_DB
 
 localization\localization.lua
 
-Libs\LibStub.lua
-Libs\tektip.lua
-Libs\X_MenuClass.lua
-Libs\ChatThrottleLib.lua
+libs\LibStub.lua
+libs\LibSimpleTimer-1.0.lua
 
 XanDPS.lua
