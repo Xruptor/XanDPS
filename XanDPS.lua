@@ -1,3 +1,8 @@
+--This mod was inspired by Skada and PicoDPS.  Please give all due credit to the original owners.
+--Basically this mod is a very small version of Skada and PicoDPS combined.
+--I've tried to simplify it as much as possible but retain only the elements I really wanted to use.
+--A very special thank you to zarnivoop for his work on Skada.
+
 local playerGUID = 0
 local timechunk = {}
 local unitpets = {}
