@@ -13,6 +13,7 @@ local f = CreateFrame("Frame", "XanDPS", UIParent)
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
 local timerLib = LibStub:GetLibrary("LibSimpleTimer-1.0", true)
+local dmgReport = LibStub:GetLibrary("XanDPS_Damage", true)
 
 f.timechunk = {}
 
@@ -114,6 +115,11 @@ function f:ChunkTick()
 	if f.timechunk.current and not InCombatLockdown() and not UnitIsDead("player") and not f:RaidPartyCombat() then
 		f:EndChunk()
 	end
+	--DEBUG
+	-- if dmgReport then
+		-- local playerDPS = dmgReport:Report(f.timechunk.total, nil, UnitGUID("player"))
+		-- if playerDPS then print(playerDPS) end
+	-- end
 end
 
 --------------------------------------------
@@ -169,12 +175,14 @@ function f:Unit_TimeActive(chunk, units)
 	--return unit time data
 	local maxtime = 0
 	
-	if units.ntime > 0 then
-		maxtime = units.ntime
-	end
-	
-	if not chunk.endtime and units.nfirst then
-		maxtime = maxtime + units.nlast - units.nfirst
+	if chunk and units then
+		if units.ntime > 0 then
+			maxtime = units.ntime
+		end
+		
+		if not chunk.endtime and units.nfirst then
+			maxtime = maxtime + units.nlast - units.nfirst
+		end
 	end
 	return maxtime
 end
@@ -294,6 +302,8 @@ end
 function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 	if XanDPS_DB and XanDPS_DB.disabled then return end
 	
+	--NOTE: RAID_FLAGS is used to only parse events if they are in a raid/party/or player (mine)
+	
 	local SRC_GOOD = nil
 	local DST_GOOD = nil
 	local SRC_GOOD_NOPET = nil
@@ -352,6 +362,7 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 			if not fail then
 				mod.func(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 			end
+			
 		end
 	end
 	
@@ -359,7 +370,6 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 	if eventtype == 'SPELL_SUMMON' and band(srcFlags, RAID_FLAGS) ~= 0 then
 		unitpets[dstGUID] = {gid = srcGUID, name = srcName}
 	end
-
 end
 
 --------------------------------------------
