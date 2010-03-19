@@ -4,16 +4,17 @@
 --A very special thank you to zarnivoop for his work on Skada.
 
 local playerGUID = 0
-local timechunk = {}
 local unitpets = {}
 local CL_events = {}
 local ticktimer = nil
 local band = bit.band
 
-local f = CreateFrame("Frame","XanDPS",UIParent)
+local f = CreateFrame("Frame", "XanDPS", UIParent)
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
 local timerLib = LibStub:GetLibrary("LibSimpleTimer-1.0", true)
+
+f.timechunk = {}
 
 --------------------------------------------
 -----EVENTS
@@ -42,7 +43,7 @@ end
 
 function f:PLAYER_REGEN_DISABLED()
 	--initiates the creation of chunked time data
-	if not XanDPS_DB.disabled and not timechunk.current then
+	if not XanDPS_DB.disabled and not f.timechunk.current then
 		f:StartChunk()
 	end
 end
@@ -72,11 +73,11 @@ end
 --------------------------------------------
 
 function f:StartChunk()
-	timechunk.current = {units = {}, starttime = time(), ntime = 0}
+	f.timechunk.current = {units = {}, starttime = time(), ntime = 0}
 
 	--Initiate total if empty
-	if timechunk.total == nil then
-		timechunk.total = {units = {}, starttime = time(), ntime = 0}
+	if f.timechunk.total == nil then
+		f.timechunk.total = {units = {}, starttime = time(), ntime = 0}
 	end
 
 	ticktimer = timerLib:ScheduleRepeatingTimer("Tick", f.ChunkTick, 1)
@@ -84,33 +85,33 @@ end
 
 function f:EndChunk()
 	--save the previous chunk, in case the user wants to see the data for the last fight
-	timechunk.current.endtime = time()
-	timechunk.current.ntime = timechunk.current.endtime - timechunk.current.starttime
-	f:Unit_UpdateTimeActive(timechunk.current) --update the time data for units in current chunk
-	timechunk.previous = timechunk.current --save it as previous chunk
+	f.timechunk.current.endtime = time()
+	f.timechunk.current.ntime = f.timechunk.current.endtime - f.timechunk.current.starttime
+	f:Unit_UpdateTimeActive(f.timechunk.current) --update the time data for units in current chunk
+	f.timechunk.previous = f.timechunk.current --save it as previous chunk
 		
 	--add current chunk to total chunk time
-	timechunk.total.ntime = timechunk.total.ntime + timechunk.current.ntime
+	f.timechunk.total.ntime = f.timechunk.total.ntime + f.timechunk.current.ntime
 	
 	--update unit data
-	f:Unit_UpdateTimeActive(timechunk.total)
-	f:Unit_TimeReset(timechunk.total)
+	f:Unit_UpdateTimeActive(f.timechunk.total)
+	f:Unit_TimeReset(f.timechunk.total)
 	
 	--Reset our timer and current chunk
-	timechunk.current = nil
+	f.timechunk.current = nil
 	timerLib:CancelTimer("Tick") --cancel the tick timer
 end
 
 function f:NewChunk()
 	--adds a new chunk to the data stream
-	if timechunk.current then
+	if f.timechunk.current then
 		f:EndChunk()
 		f:StartChunk()
 	end
 end
 
 function f:ChunkTick()
-	if timechunk.current and not InCombatLockdown() and not UnitIsDead("player") and not f:RaidPartyCombat() then
+	if f.timechunk.current and not InCombatLockdown() and not UnitIsDead("player") and not f:RaidPartyCombat() then
 		f:EndChunk()
 	end
 end
@@ -291,14 +292,14 @@ function f:Register_CL(func, event, flags)
 end
 
 function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
-	if XanDPS_DB and XanDPS_DB.disabled return end
+	if XanDPS_DB and XanDPS_DB.disabled then return end
 	
 	local SRC_GOOD = nil
 	local DST_GOOD = nil
 	local SRC_GOOD_NOPET = nil
 	local DST_GOOD_NOPET = nil
-	
-	if timechunk.current and CL_events[eventtype] then
+
+	if f.timechunk.current and CL_events[eventtype] then
 		for i, mod in ipairs(CL_events[eventtype]) do
 			local fail = false
 			
