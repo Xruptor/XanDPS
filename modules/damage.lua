@@ -1,12 +1,12 @@
 --[[----------------------------------------------------------------------------
-Name: XanDPS_Damge
+Name: XanDPS_Damage
 Description: A damage module for the XanDPS mod.
 Author: Xruptor
 Email: private message (PM) me at wowinterface.com
 Credits: zarnivoop for his work on Skada
 ------------------------------------------------------------------------------]]
 
-local module_name = "XanDPS_Damge"
+local module_name = "XanDPS_Damage"
 local module, oldminor = LibStub:NewLibrary(module_name, 1)
 if not module then return end
 
