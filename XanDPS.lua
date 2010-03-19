@@ -66,7 +66,7 @@ end
 function f:StartChunk()
 	timechunk.current = {units = {}, starttime = time(), ntime = 0}
 
-	-- Also start the total set if it is nil.
+	--Initiate total if empty
 	if timechunk.total == nil then
 		timechunk.total = {units = {}, starttime = time(), ntime = 0}
 	end
@@ -75,9 +75,12 @@ function f:StartChunk()
 end
 
 function f:EndChunk()
-	--save the last chunk, in case the user wants to see the data for the last fight
+
+	--save the previous chunk, in case the user wants to see the data for the last fight
 	timechunk.current.endtime = time()
-	timechunk.last = timechunk.current
+	timechunk.current.ntime = timechunk.current.endtime - timechunk.current.starttime
+	timechunk.previous = timechunk.current
+	f:Unit_UpdateTimeActive(timechunk.current) --update the time data for units in current chunk
 		
 	--add current chunk to total chunk time
 	timechunk.total.ntime = timechunk.total.ntime + timechunk.current.ntime
@@ -113,7 +116,7 @@ function f:Unit_Fetch(chunk, gid)
 	--NOTE: This function simply returns the player but will not create it if it doesn't exsist.
 	for k, v in ipairs(chunk.units) do
 		if v.gid == gid then
-			return p
+			return v
 		end
 	end
 	return nil
@@ -132,15 +135,15 @@ function f:Unit_Seek(chunk, gid, pName)
 	
 	if not unitID then
 		if not pName then return end
-		unitID = {gid = gid, class = select(2, UnitClass(pName)), name = pName, first = time(), ntime = 0}
+		unitID = {gid = gid, class = select(2, UnitClass(pName)), name = pName, nfirst = time(), ntime = 0}
 		table.insert(chunk.units, unitID)
 	end
 	
 	--set our time slots
-	if not unitID.first then
-		unitID.first = time()
+	if not unitID.nfirst then
+		unitID.nfirst = time()
 	end
-	unitID.last = time()
+	unitID.nlast = time() --this updates the last time the player had preformed an action (each Unit_Seek use)
 
 	return unitID
 end
@@ -148,8 +151,8 @@ end
 function f:Unit_UpdateTimeActive(chunk)
 	--update unit time data
 	for k, v in ipairs(chunk.units) do
-		if v.last then
-			v.ntime = v.ntime + (v.last - v.first)
+		if v.nlast then
+			v.ntime = v.ntime + (v.nlast - v.nfirst)
 		end
 	end
 end
@@ -162,16 +165,16 @@ function f:Unit_TimeActive(chunk, units)
 		maxtime = units.ntime
 	end
 	
-	if not chunk.endtime and units.first then
-		maxtime = maxtime + units.last - units.first
+	if not chunk.endtime and units.nfirst then
+		maxtime = maxtime + units.nlast - units.nfirst
 	end
 	return maxtime
 end
 
 function f:Unit_TimeReset(chunk)
 	for k, v in ipairs(chunk.units) do
-		v.first = nil
-		v.last = nil
+		v.nfirst = nil
+		v.nlast = nil
 	end
 end
 
@@ -246,6 +249,7 @@ end
 --------------------------------------------
 
 function f:GetChunkTime(chunk)
+	if not chunk then return 0 end
 	if chunk.ntime then
 		return chunk.ntime
 	else
