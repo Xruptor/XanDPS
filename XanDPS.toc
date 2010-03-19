@@ -10,4 +10,6 @@ localization\localization.lua
 libs\LibStub.lua
 libs\LibSimpleTimer-1.0.lua
 
+modules\damage.lua
+
 XanDPS.lua

@@ -6,6 +6,7 @@
 local playerGUID = 0
 local timechunk = {}
 local unitpets = {}
+local CL_events = {}
 local ticktimer = nil
 local band = bit.band
 
@@ -30,7 +31,8 @@ function f:PLAYER_LOGIN()
 	f:RegisterEvent("PARTY_MEMBERS_CHANGED")
 	f:RegisterEvent("RAID_ROSTER_UPDATE")
 	f:RegisterEvent("UNIT_PET")
-	
+	f:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+
 	local ver = GetAddOnMetadata("XanDPS","Version") or '1.0'
 	DEFAULT_CHAT_FRAME:AddMessage(string.format(XANDPS_LOADED, ver or "1.0"))
 	
@@ -81,12 +83,11 @@ function f:StartChunk()
 end
 
 function f:EndChunk()
-
 	--save the previous chunk, in case the user wants to see the data for the last fight
 	timechunk.current.endtime = time()
 	timechunk.current.ntime = timechunk.current.endtime - timechunk.current.starttime
-	timechunk.previous = timechunk.current
 	f:Unit_UpdateTimeActive(timechunk.current) --update the time data for units in current chunk
+	timechunk.previous = timechunk.current --save it as previous chunk
 		
 	--add current chunk to total chunk time
 	timechunk.total.ntime = timechunk.total.ntime + timechunk.current.ntime
@@ -212,7 +213,6 @@ function f:Pet_Fetch(petGUID, petName)
 			return pet.gid, pet.name
 		end
 	end
-	return nil, nil
 end
 
 function f:Pet_Parse()
@@ -273,6 +273,92 @@ function f:Pet_Reallocate(cl_action)
 			cl_action.unitGID = uGUID
 		end
 	end
+end
+
+--------------------------------------------
+----- COMBAT LOG FUNCTIONS
+----- NOTE: FULL CREDIT TO (zarnivoop) for SKADA
+--------------------------------------------
+
+local PET_FLAGS = COMBATLOG_OBJECT_TYPE_PET + COMBATLOG_OBJECT_TYPE_GUARDIAN
+local RAID_FLAGS = COMBATLOG_OBJECT_AFFILIATION_MINE + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_RAID
+
+function f:Register_CL(func, event, flags)
+	if not CL_events[event] then
+		CL_events[event] = {}
+	end
+	tinsert(CL_events[event], {["func"] = func, ["flags"] = flags})
+end
+
+function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
+	if XanDPS_DB and XanDPS_DB.disabled return end
+	
+	local SRC_GOOD = nil
+	local DST_GOOD = nil
+	local SRC_GOOD_NOPET = nil
+	local DST_GOOD_NOPET = nil
+	
+	if timechunk.current and CL_events[eventtype] then
+		for i, mod in ipairs(CL_events[eventtype]) do
+			local fail = false
+			
+			if not fail and mod.flags.SRC_GOOD_NOPET then
+				if SRC_GOOD_NOPET == nil then
+					SRC_GOOD_NOPET = band(srcFlags, RAID_FLAGS) ~= 0 and band(srcFlags, PET_FLAGS) == 0
+					if SRC_GOOD_NOPET then
+						SRC_GOOD = true
+					end
+				end
+				if not SRC_GOOD_NOPET then
+					fail = true
+				end
+			end
+			if not fail and mod.flags.DST_GOOD_NOPET then
+				if DST_GOOD_NOPET == nil then
+					DST_GOOD_NOPET = band(dstFlags, RAID_FLAGS) ~= 0 and band(dstFlags, PET_FLAGS) == 0
+					if DST_GOOD_NOPET then
+						DST_GOOD = true
+					end
+				end
+				if not DST_GOOD_NOPET then
+					fail = true
+				end
+			end
+			if not fail and mod.flags.SRC_GOOD or mod.flags.SRC_BAD then
+				if SRC_GOOD == nil then
+					SRC_GOOD = band(srcFlags, RAID_FLAGS) ~= 0 or (band(srcFlags, PET_FLAGS) ~= 0 and unitpets[srcGUID])
+				end
+				if mod.flags.SRC_GOOD and not SRC_GOOD then
+					fail = true
+				end
+				if mod.flags.SRC_BAD and SRC_GOOD then
+					fail = true
+				end
+			end
+			if not fail and mod.flags.DST_GOOD or mod.flags.DST_BAD then
+				if DST_GOOD_ == nil then
+					DST_GOOD = band(dstFlags, RAID_FLAGS) ~= 0 or (band(dstFlags, PET_FLAGS) ~= 0 and unitpets[dstGUID])
+				end
+				if mod.flags.DST_GOOD and not DST_GOOD then
+					fail = true
+				end
+				if mod.flags.DST_BAD and DST_GOOD then
+					fail = true
+				end
+			end
+			
+			--pass to our module
+			if not fail then
+				mod.func(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
+			end
+		end
+	end
+	
+	-- Pet summons, guardians
+	if eventtype == 'SPELL_SUMMON' and band(srcFlags, RAID_FLAGS) ~= 0 then
+		unitpets[dstGUID] = {gid = srcGUID, name = srcName}
+	end
+
 end
 
 --------------------------------------------
