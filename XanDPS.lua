@@ -2,6 +2,7 @@ local playerGUID = 0
 local timechunk = {}
 local unitpets = {}
 local ticktimer = nil
+local band = bit.band
 
 local f = CreateFrame("Frame","XanDPS",UIParent)
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
@@ -206,7 +207,7 @@ function f:Pet_Fetch(petGUID, petName)
 			return pet.gid, pet.name
 		end
 	end
-	return petGUID, petName
+	return nil, nil
 end
 
 function f:Pet_Parse()
@@ -242,6 +243,31 @@ function f:Pet_Parse()
 	
 	--update the pet array
 	unitpets = tmpArray
+end
+
+function f:Pet_Reallocate(cl_action)
+	if cl_action and not UnitIsPlayer(cl_action.unitName) then
+		if cl_action.unitFlags and band(cl_action.unitFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN) ~= 0 then
+			if band(cl_action.unitFlags, COMBATLOG_OBJECT_AFFILIATION_MINE) ~= 0 then
+				--this is for guardian pets, reserved same name as owner
+				--this is done to force the guardian pet data to be parsed
+				--Greater Fire Elementals, Amry of the Dead, etc..
+				cl_action.unitName = UnitName("player")
+				cl_action.unitGID = UnitGUID("player")
+			else
+				--ignore pet parsing (below) by using the unitname
+				--this will rarely occur, however it usually occurs due to incorrectly parsed pets
+				--so to save us trouble lets just ignore it that one time (not that it makes a huge deal)
+				cl_action.unitGID = cl_action.unitName
+			end
+		end
+		--find pet if not a guardian and adjust the data to proper owner
+		local uGUID, uName = f:Pet_Fetch(cl_action.unitGID, cl_action.unitName)
+		if uGUID and uName then
+			cl_action.unitName = uName
+			cl_action.unitGID = uGUID
+		end
+	end
 end
 
 --------------------------------------------
