@@ -42,16 +42,16 @@ local function log_data(chunk, dmg)
 	if not chunk then return end
 	
 	--seek the unit (will add unit if not available)
-	local unitID =  XanDPS:Unit_Seek(chunk, dmg.unitGID, dmg.unitName)
+	local uChk =  XanDPS:Unit_Seek(chunk, dmg.unitGID, dmg.unitName)
 	
-	if unitID then
+	if uChk then
 		local amount = dmg.amount or 0
 
 		--add to chunk total
 		chunk.damage = (chunk.damage or 0) + amount
 		
 		--add to unit total
-		unitID.damage = (unitID.damage or 0) + amount
+		uChk.damage = (uChk.damage or 0) + amount
 	end
 end
 

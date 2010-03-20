@@ -3,7 +3,6 @@
 --I've tried to simplify it as much as possible but retain only the elements I really wanted to use.
 --A very special thank you to zarnivoop for his work on Skada.
 
-local playerGUID = 0
 local unitpets = {}
 local CL_events = {}
 local ticktimer = nil
@@ -22,7 +21,6 @@ f.timechunk = {}
 --------------------------------------------
 
 function f:PLAYER_LOGIN()
-	
 	--Database creation
 	if not XanDPS_DB then XanDPS_DB = {} end
 	if XanDPS_DB.bgShown == nil then XanDPS_DB.bgShown = 1 end
@@ -116,10 +114,10 @@ function f:ChunkTick()
 		f:EndChunk()
 	end
 	--DEBUG
-	-- if dmgReport then
-		-- local playerDPS = dmgReport:Report(f.timechunk.total, nil, UnitGUID("player"))
-		-- if playerDPS then print(playerDPS) end
-	-- end
+	if dmgReport then
+		local playerDPS = dmgReport:Report(f.timechunk.total, nil, UnitGUID("party1"))
+		if playerDPS then print(playerDPS) end
+	end
 end
 
 --------------------------------------------
@@ -127,42 +125,35 @@ end
 --------------------------------------------
 
 function f:Unit_Fetch(chunk, gid)
+	if not chunk then return end
 	--NOTE: This function simply returns the player but will not create it if it doesn't exsist.
-	for k, v in ipairs(chunk.units) do
-		if v.gid == gid then
-			return v
-		end
-	end
-	return nil
+	return chunk.units[gid] or nil
 end
 
 function f:Unit_Seek(chunk, gid, pName)
 	--NOTE: This function will create the unit if it doesn't exsist, or return the unit if found.
-	local unitID = nil
-
-	--return unit if found
-	for k, v in ipairs(chunk.units) do
-		if v.gid == gid then
-			unitID = v
-		end
-	end
+	if not chunk then return end
 	
-	if not unitID then
+	local uChk = chunk.units[gid] or nil
+
+	if not uChk then
 		if not pName then return end
-		unitID = {gid = gid, class = select(2, UnitClass(pName)), name = pName, nfirst = time(), ntime = 0}
-		table.insert(chunk.units, unitID)
+		uChk = {gid = gid, class = select(2, UnitClass(pName)), name = pName, nfirst = time(), ntime = 0}
+		chunk.units[gid] = uChk
 	end
 	
 	--set our time slots
-	if not unitID.nfirst then
-		unitID.nfirst = time()
+	if not uChk.nfirst then
+		uChk.nfirst = time()
 	end
-	unitID.nlast = time() --this updates the last time the player had preformed an action (each Unit_Seek use)
+	uChk.nlast = time() --this updates the last time the player had preformed an action (each Unit_Seek use)
 
-	return unitID
+	return uChk
 end
 
 function f:Unit_UpdateTimeActive(chunk)
+	if not chunk then return end
+	
 	--update unit time data
 	for k, v in ipairs(chunk.units) do
 		if v.nlast then
@@ -175,7 +166,7 @@ function f:Unit_TimeActive(chunk, units)
 	--return unit time data
 	local maxtime = 0
 	
-	if chunk and units then
+	if chunk and units and units.ntime then
 		if units.ntime > 0 then
 			maxtime = units.ntime
 		end
@@ -188,6 +179,8 @@ function f:Unit_TimeActive(chunk, units)
 end
 
 function f:Unit_TimeReset(chunk)
+	if not chunk then return end
+	
 	for k, v in ipairs(chunk.units) do
 		v.nfirst = nil
 		v.nlast = nil
@@ -199,23 +192,21 @@ end
 --------------------------------------------
 
 function f:Pet_Seek(unit_id, pet_id)
-	--NOTE: This function will return pet if found, if not then it returns new pet data if available
+	--NOTE: This function will create pets if not found
+	
 	local uGUID = UnitGUID(unit_id)
 	local uName = UnitName(unit_id)
 	local pGUID = UnitGUID(pet_id)
 	local petUnit = nil
 	
 	if pGUID and uGUID and uName and not unitpets[pGUID] then
-		petUnit = {gid = uGUID, name = uName}
-	elseif pGUID and unitpets[pGUID] then
-		petUnit = unitpets[pGUID]
+		unitpets[pGUID] = {gid = uGUID, name = uName}
 	end
-	
-	return pGUID, petUnit
 end
 
 function f:Pet_Fetch(petGUID, petName)
 	--NOTE: This function will return the owner id and name of a given pet
+	
 	if not UnitIsPlayer(petName) then
 		local pet = unitpets[petGUID]
 		if pet then
@@ -226,37 +217,22 @@ end
 
 function f:Pet_Parse()
 	--NOTE: This function will parse party/raid/player for any given pets and add them if required.
-	--NOTE: This function also updates the pet array to keep it fresh and prevent it from growing too large.
-	local tmpArray = {}
-	
 	if GetNumRaidMembers() > 0 then
 		for i = 1, GetNumRaidMembers(), 1 do
 			if UnitExists("raid"..i.."pet") then
-				local pGUID, petUnit = f:Pet_Seek("raid"..i, "raid"..i.."pet")
-				if pGUID and petUnit then
-					tmpArray[pGUID] = petUnit
-				end
+				f:Pet_Seek("raid"..i, "raid"..i.."pet")
 			end
 		end
 	elseif GetNumPartyMembers() > 0 then
 		for i = 1, GetNumPartyMembers(), 1 do
 			if UnitExists("party"..i.."pet") then
-				local pGUID, petUnit = f:Pet_Seek("party"..i, "party"..i.."pet")
-				if pGUID and petUnit then
-					tmpArray[pGUID] = petUnit
-				end
+				f:Pet_Seek("party"..i, "party"..i.."pet")
 			end
 		end
 	end
 	if UnitExists("pet") then
-		local pGUID, petUnit = f:Pet_Seek("player", "pet")
-		if pGUID and petUnit then
-			tmpArray[pGUID] = petUnit
-		end
+		f:Pet_Seek("player", "pet")
 	end
-	
-	--update the pet array
-	unitpets = tmpArray
 end
 
 function f:Pet_Reallocate(cl_action)
@@ -268,11 +244,7 @@ function f:Pet_Reallocate(cl_action)
 				--Greater Fire Elementals, Amry of the Dead, etc..
 				cl_action.unitName = UnitName("player")
 				cl_action.unitGID = UnitGUID("player")
-			else
-				--ignore pet parsing (below) by using the unitname
-				--this will rarely occur, however it usually occurs due to incorrectly parsed pets
-				--so to save us trouble lets just ignore it that one time (not that it makes a huge deal)
-				cl_action.unitGID = cl_action.unitName
+				print('Found1: '..cl_action.unitGID.."<>"..cl_action.unitName)
 			end
 		end
 		--find pet if not a guardian and adjust the data to proper owner
@@ -280,6 +252,7 @@ function f:Pet_Reallocate(cl_action)
 		if uGUID and uName then
 			cl_action.unitName = uName
 			cl_action.unitGID = uGUID
+			print('Found2: '..cl_action.unitGID.."<>"..cl_action.unitName.."<Owner>"..uGUID..":"..uName)
 		end
 	end
 end
@@ -309,7 +282,29 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 	local SRC_GOOD_NOPET = nil
 	local DST_GOOD_NOPET = nil
 
+	-- Pet summons, guardians (only for raid/party/mine)
+	if eventtype == 'SPELL_SUMMON' and band(srcFlags, RAID_FLAGS) ~= 0 then
+		--if a pet summons a pet (IE Fire Elemental Totem -> Summons Greater Fire Elemental)
+		--check the source to see if its a pet, if it is then just resync it with actual owner.
+		if unitpets[srcGUID] then
+			--if the source is already a pet then grab the data and associate with owner
+			unitpets[dstGUID] = {gid = unitpets[srcGUID].gid, name = unitpets[srcGUID].name}
+			print('Pet is source: '..(srcName or 'unknown').." <> "..(dstName or 'unknown'))
+		else
+			--it's not a pet summoning a pet, so lets add it to the pet array
+			unitpets[dstGUID] = {gid = srcGUID, name = srcName}
+			print('New Pet: '..(srcName or 'unknown')..":"..(dstGUID or 'unknown'))
+		end
+	end
+	
+	if eventtype == 'UNIT_DIED' and unitpets[dstGUID] then
+		--keep the pet array clean and small
+		unitpets[dstGUID] = nil
+		print('pet died: '..dstGUID.." <> "..(dstName or 'unknown'))
+	end
+
 	if f.timechunk.current and CL_events[eventtype] then
+
 		for i, mod in ipairs(CL_events[eventtype]) do
 			local fail = false
 			
@@ -366,10 +361,6 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 		end
 	end
 	
-	-- Pet summons, guardians
-	if eventtype == 'SPELL_SUMMON' and band(srcFlags, RAID_FLAGS) ~= 0 then
-		unitpets[dstGUID] = {gid = srcGUID, name = srcName}
-	end
 end
 
 --------------------------------------------
