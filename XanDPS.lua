@@ -116,14 +116,16 @@ function f:ChunkTick()
 		f:EndChunk()
 	end
 	--DEBUG
-	if dmgReport then
-		local playerDPS = dmgReport:Report(f.timechunk.total, nil, UnitGUID("player"))
-		if playerDPS then print(playerDPS) end
-	end
-	if healReport then
-		local playerHPS = healReport:Report(f.timechunk.total, nil, UnitGUID("player"))
-		if playerHPS then print(playerHPS) end
-	end
+	-- if dmgReport then
+		-- local playerDPS = dmgReport:Data_DPS(f.timechunk.total, nil, UnitGUID("player"))
+		-- if playerDPS then print("DPS: "..playerDPS) end
+	-- end
+	-- if healReport then
+		-- local playerHPS = healReport:Data_HPS(f.timechunk.total, nil, UnitGUID("player"))
+		-- if playerHPS then print("HPS: "..playerHPS) end
+		-- local playerTotalHeals = healReport:Data_Totalheals(f.timechunk.total, nil, UnitGUID("player"))
+		-- if playerTotalHeals then print("THeals: "..playerTotalHeals) end
+	-- end
 end
 
 --------------------------------------------
@@ -240,7 +242,9 @@ function f:Pet_Parse()
 end
 
 function f:Pet_Reallocate(cl_action)
-print('pet parse')
+if cl_action and cl_action.unitName then
+	print('pet parse: '..cl_action.unitName)
+end
 	if cl_action and not UnitIsPlayer(cl_action.unitName) then
 		if cl_action.unitFlags and band(cl_action.unitFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN) ~= 0 then
 			if band(cl_action.unitFlags, COMBATLOG_OBJECT_AFFILIATION_MINE) ~= 0 then

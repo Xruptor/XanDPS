@@ -14,8 +14,8 @@ if not module then return end
 --REPORT
 -------------------
 
-function module:Report(chunk, units, uGUID)
-	--this function returns the collected data
+function module:Data_DPS(chunk, units, uGUID)
+	--this function returns the collected data for DPS
 	
 	if uGUID then
 		local tmpG = XanDPS:Unit_Fetch(chunk, uGUID)
@@ -29,7 +29,35 @@ function module:Report(chunk, units, uGUID)
 	local totaltime = XanDPS:Unit_TimeActive(chunk, units)
 	
 	--return DPS
-	return units.damage / math.max(1, totaltime)
+	if units then
+		--we want unit DPS
+		return (units.damage or 0) / math.max(1, totaltime)
+	else
+		--we want chunk DPS
+		return (chunk.damage or 0) / math.max(1, XanDPS:GetChunkTime(chunk))
+	end
+end
+
+function module:Data_TotalDamage(chunk, units, uGUID)
+	--this function returns the collected data for total damage
+	
+	if uGUID then
+		local tmpG = XanDPS:Unit_Fetch(chunk, uGUID)
+		if tmpG then
+			units = tmpG
+		else
+			return 0
+		end
+	end
+
+	--return DPS
+	if units then
+		--we want unit total damage
+		return units.damage or 0
+	else
+		--we want chunk total damage
+		return chunk.damage or 0
+	end
 end
 
 -------------------

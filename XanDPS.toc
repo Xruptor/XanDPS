@@ -11,5 +11,6 @@ libs\LibStub.lua
 libs\LibSimpleTimer-1.0.lua
 
 modules\damage.lua
+modules\healing.lua
 
 XanDPS.lua
