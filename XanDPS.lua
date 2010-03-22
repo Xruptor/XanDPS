@@ -7,12 +7,13 @@ local unitpets = {}
 local CL_events = {}
 local ticktimer = nil
 local band = bit.band
+local timerLib = LibStub:GetLibrary("LibSimpleTimer-1.0", true)
+
+--MODULES
+local dmgReport = LibStub:GetLibrary("XanDPS_Damage", true)
 
 local f = CreateFrame("Frame", "XanDPS", UIParent)
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
-
-local timerLib = LibStub:GetLibrary("LibSimpleTimer-1.0", true)
-local dmgReport = LibStub:GetLibrary("XanDPS_Damage", true)
 
 f.timechunk = {}
 
@@ -115,7 +116,7 @@ function f:ChunkTick()
 	end
 	--DEBUG
 	if dmgReport then
-		local playerDPS = dmgReport:Report(f.timechunk.total, nil, UnitGUID("party1"))
+		local playerDPS = dmgReport:Report(f.timechunk.total, nil, UnitGUID("party"))
 		if playerDPS then print(playerDPS) end
 	end
 end
@@ -125,14 +126,14 @@ end
 --------------------------------------------
 
 function f:Unit_Fetch(chunk, gid)
-	if not chunk then return end
+	if not chunk then return nil end
 	--NOTE: This function simply returns the player but will not create it if it doesn't exsist.
 	return chunk.units[gid] or nil
 end
 
 function f:Unit_Seek(chunk, gid, pName)
 	--NOTE: This function will create the unit if it doesn't exsist, or return the unit if found.
-	if not chunk then return end
+	if not chunk then return nil end
 	
 	local uChk = chunk.units[gid] or nil
 
@@ -152,7 +153,7 @@ function f:Unit_Seek(chunk, gid, pName)
 end
 
 function f:Unit_UpdateTimeActive(chunk)
-	if not chunk then return end
+	if not chunk then return nil end
 	
 	--update unit time data
 	for k, v in ipairs(chunk.units) do
@@ -163,23 +164,25 @@ function f:Unit_UpdateTimeActive(chunk)
 end
 
 function f:Unit_TimeActive(chunk, units)
-	--return unit time data
-	local maxtime = 0
+	--NOTE: This function returns the total time the unit has been active
+	local totaltime = 0
 	
 	if chunk and units and units.ntime then
 		if units.ntime > 0 then
-			maxtime = units.ntime
+			totaltime = units.ntime
 		end
 		
 		if not chunk.endtime and units.nfirst then
-			maxtime = maxtime + units.nlast - units.nfirst
+			totaltime = totaltime + units.nlast - units.nfirst
 		end
 	end
-	return maxtime
+	
+	return totaltime
 end
 
 function f:Unit_TimeReset(chunk)
-	if not chunk then return end
+	if not chunk then return nil end
+	--NOTE: This function resets the unit time chunks
 	
 	for k, v in ipairs(chunk.units) do
 		v.nfirst = nil
@@ -192,27 +195,23 @@ end
 --------------------------------------------
 
 function f:Pet_Seek(unit_id, pet_id)
-	--NOTE: This function will create pets if not found
-	
+	--NOTE: This function will create pet data if not found
 	local uGUID = UnitGUID(unit_id)
 	local uName = UnitName(unit_id)
 	local pGUID = UnitGUID(pet_id)
-	local petUnit = nil
 	
 	if pGUID and uGUID and uName and not unitpets[pGUID] then
 		unitpets[pGUID] = {gid = uGUID, name = uName}
 	end
 end
 
-function f:Pet_Fetch(petGUID, petName)
+function f:Pet_Fetch(petGUID)
 	--NOTE: This function will return the owner id and name of a given pet
-	
-	if not UnitIsPlayer(petName) then
-		local pet = unitpets[petGUID]
-		if pet then
-			return pet.gid, pet.name
-		end
+	local uPet = unitpets[petGUID]
+	if uPet then
+		return uPet.gid, uPet.name
 	end
+	return nil, nil
 end
 
 function f:Pet_Parse()
@@ -239,19 +238,18 @@ function f:Pet_Reallocate(cl_action)
 	if cl_action and not UnitIsPlayer(cl_action.unitName) then
 		if cl_action.unitFlags and band(cl_action.unitFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN) ~= 0 then
 			if band(cl_action.unitFlags, COMBATLOG_OBJECT_AFFILIATION_MINE) ~= 0 then
-				--this is for guardian pets, reserved same name as owner
-				--this is done to force the guardian pet data to be parsed
+				--if guardian is players then update owner
 				--Greater Fire Elementals, Amry of the Dead, etc..
 				cl_action.unitName = UnitName("player")
 				cl_action.unitGID = UnitGUID("player")
 				print('Found1: '..cl_action.unitGID.."<>"..cl_action.unitName)
 			end
 		end
-		--find pet if not a guardian and adjust the data to proper owner
-		local uGUID, uName = f:Pet_Fetch(cl_action.unitGID, cl_action.unitName)
+		--find pet and attach real owner
+		local uGUID, uName = f:Pet_Fetch(cl_action.unitGID)
 		if uGUID and uName then
-			cl_action.unitName = uName
 			cl_action.unitGID = uGUID
+			cl_action.unitName = uName
 			print('Found2: '..cl_action.unitGID.."<>"..cl_action.unitName.."<Owner>"..uGUID..":"..uName)
 		end
 	end
@@ -275,7 +273,7 @@ end
 function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 	if XanDPS_DB and XanDPS_DB.disabled then return end
 	
-	--NOTE: RAID_FLAGS is used to only parse events if they are in a raid/party/or player (mine)
+	--NOTE: RAID_FLAGS is used to only parse events only if they are in a raid/party/or player(mine)
 	
 	local SRC_GOOD = nil
 	local DST_GOOD = nil
@@ -289,9 +287,9 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 		if unitpets[srcGUID] then
 			--if the source is already a pet then grab the data and associate with owner
 			unitpets[dstGUID] = {gid = unitpets[srcGUID].gid, name = unitpets[srcGUID].name}
-			print('Pet is source: '..(srcName or 'unknown').." <> "..(dstName or 'unknown'))
+			print('Pet is source: '..(srcName or 'unknown').." <> "..(unitpets[srcGUID].name or 'unknown'))
 		else
-			--it's not a pet summoning a pet, so lets add it to the pet array
+			--if it's not a pet summoning (ie. fire elemental totem), then add pet with owner
 			unitpets[dstGUID] = {gid = srcGUID, name = srcName}
 			print('New Pet: '..(srcName or 'unknown')..":"..(dstGUID or 'unknown'))
 		end
@@ -305,10 +303,10 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 
 	if f.timechunk.current and CL_events[eventtype] then
 
-		for i, mod in ipairs(CL_events[eventtype]) do
+		for i, module in ipairs(CL_events[eventtype]) do
 			local fail = false
 			
-			if not fail and mod.flags.SRC_GOOD_NOPET then
+			if not fail and module.flags.SRC_GOOD_NOPET then
 				if SRC_GOOD_NOPET == nil then
 					SRC_GOOD_NOPET = band(srcFlags, RAID_FLAGS) ~= 0 and band(srcFlags, PET_FLAGS) == 0
 					if SRC_GOOD_NOPET then
@@ -319,7 +317,7 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 					fail = true
 				end
 			end
-			if not fail and mod.flags.DST_GOOD_NOPET then
+			if not fail and module.flags.DST_GOOD_NOPET then
 				if DST_GOOD_NOPET == nil then
 					DST_GOOD_NOPET = band(dstFlags, RAID_FLAGS) ~= 0 and band(dstFlags, PET_FLAGS) == 0
 					if DST_GOOD_NOPET then
@@ -330,32 +328,32 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 					fail = true
 				end
 			end
-			if not fail and mod.flags.SRC_GOOD or mod.flags.SRC_BAD then
+			if not fail and module.flags.SRC_GOOD or module.flags.SRC_BAD then
 				if SRC_GOOD == nil then
 					SRC_GOOD = band(srcFlags, RAID_FLAGS) ~= 0 or (band(srcFlags, PET_FLAGS) ~= 0 and unitpets[srcGUID])
 				end
-				if mod.flags.SRC_GOOD and not SRC_GOOD then
+				if module.flags.SRC_GOOD and not SRC_GOOD then
 					fail = true
 				end
-				if mod.flags.SRC_BAD and SRC_GOOD then
+				if module.flags.SRC_BAD and SRC_GOOD then
 					fail = true
 				end
 			end
-			if not fail and mod.flags.DST_GOOD or mod.flags.DST_BAD then
-				if DST_GOOD_ == nil then
+			if not fail and module.flags.DST_GOOD or module.flags.DST_BAD then
+				if DST_GOOD == nil then
 					DST_GOOD = band(dstFlags, RAID_FLAGS) ~= 0 or (band(dstFlags, PET_FLAGS) ~= 0 and unitpets[dstGUID])
 				end
-				if mod.flags.DST_GOOD and not DST_GOOD then
+				if module.flags.DST_GOOD and not DST_GOOD then
 					fail = true
 				end
-				if mod.flags.DST_BAD and DST_GOOD then
+				if module.flags.DST_BAD and DST_GOOD then
 					fail = true
 				end
 			end
 			
 			--pass to our module
 			if not fail then
-				mod.func(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
+				module.func(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 			end
 			
 		end

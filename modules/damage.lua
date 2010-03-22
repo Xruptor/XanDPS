@@ -3,7 +3,7 @@ Name: XanDPS_Damage
 Description: A damage module for the XanDPS mod.
 Author: Xruptor
 Email: private message (PM) me at wowinterface.com
-Credits: zarnivoop for his work on Skada
+Credits: Zarnivoop for his work on Skada
 ------------------------------------------------------------------------------]]
 
 local module_name = "XanDPS_Damage"
@@ -40,6 +40,7 @@ local dmg = {}
 
 local function log_data(chunk, dmg)
 	if not chunk then return end
+	if not dmg then return end
 	
 	--seek the unit (will add unit if not available)
 	local uChk =  XanDPS:Unit_Seek(chunk, dmg.unitGID, dmg.unitName)
