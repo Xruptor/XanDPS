@@ -11,6 +11,7 @@ local timerLib = LibStub:GetLibrary("LibSimpleTimer-1.0", true)
 
 --MODULES
 local dmgReport = LibStub:GetLibrary("XanDPS_Damage", true)
+local healReport = LibStub:GetLibrary("XanDPS_Healing", true)
 
 local f = CreateFrame("Frame", "XanDPS", UIParent)
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
@@ -116,8 +117,12 @@ function f:ChunkTick()
 	end
 	--DEBUG
 	if dmgReport then
-		local playerDPS = dmgReport:Report(f.timechunk.total, nil, UnitGUID("party"))
+		local playerDPS = dmgReport:Report(f.timechunk.total, nil, UnitGUID("player"))
 		if playerDPS then print(playerDPS) end
+	end
+	if healReport then
+		local playerHPS = healReport:Report(f.timechunk.total, nil, UnitGUID("player"))
+		if playerHPS then print(playerHPS) end
 	end
 end
 
@@ -235,6 +240,7 @@ function f:Pet_Parse()
 end
 
 function f:Pet_Reallocate(cl_action)
+print('pet parse')
 	if cl_action and not UnitIsPlayer(cl_action.unitName) then
 		if cl_action.unitFlags and band(cl_action.unitFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN) ~= 0 then
 			if band(cl_action.unitFlags, COMBATLOG_OBJECT_AFFILIATION_MINE) ~= 0 then
