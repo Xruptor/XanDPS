@@ -43,7 +43,7 @@ function f:PLAYER_LOGIN()
 end
 
 function f:PLAYER_REGEN_DISABLED()
-	--initiates the creation of chunked time data
+	--initiates the creation of chunked time data if we haven't started one already
 	if not XanDPS_DB.disabled and not f.timechunk.current then
 		f:StartChunk()
 	end
@@ -90,7 +90,7 @@ function f:EndChunk()
 	f.timechunk.current.ntime = f.timechunk.current.endtime - f.timechunk.current.starttime
 	f:Unit_UpdateTimeActive(f.timechunk.current) --update the time data for units in current chunk
 	f.timechunk.previous = f.timechunk.current --save it as previous chunk
-		
+
 	--add current chunk to total chunk time
 	f.timechunk.total.ntime = f.timechunk.total.ntime + f.timechunk.current.ntime
 	
@@ -103,27 +103,19 @@ function f:EndChunk()
 	timerLib:CancelTimer("Tick") --cancel the tick timer
 end
 
-function f:NewChunk()
-	--adds a new chunk to the data stream
-	if f.timechunk.current then
-		f:EndChunk()
-		f:StartChunk()
-	end
-end
-
 function f:ChunkTick()
-	if f.timechunk.current and not InCombatLockdown() and not UnitIsDead("player") and not f:RaidPartyCombat() then
+	if f.timechunk.current and not f:RaidParty_InCombat() then
 		f:EndChunk()
 	end
 	--DEBUG
-	-- if dmgReport then
-		-- local playerDPS = dmgReport:Data_DPS(f.timechunk.total, nil, UnitGUID("player"))
-		-- if playerDPS then print("DPS: "..playerDPS) end
-	-- end
+	 -- if dmgReport and UnitExists("party1") then
+		 -- local playerDPS = dmgReport:Data_DPS(f.timechunk.current, nil, UnitGUID("party1"))
+		 -- if playerDPS then print("Party 1 DPS: "..playerDPS) end
+	 -- end
 	-- if healReport then
 		-- local playerHPS = healReport:Data_HPS(f.timechunk.total, nil, UnitGUID("player"))
 		-- if playerHPS then print("HPS: "..playerHPS) end
-		-- local playerTotalHeals = healReport:Data_Totalheals(f.timechunk.total, nil, UnitGUID("player"))
+		-- local playerTotalHeals = healReport:Data_Totalheals(f.timechunk.total, nil, UnitGUID("party1"))
 		-- if playerTotalHeals then print("THeals: "..playerTotalHeals) end
 	-- end
 end
@@ -141,22 +133,20 @@ end
 function f:Unit_Seek(chunk, gid, pName)
 	--NOTE: This function will create the unit if it doesn't exsist, or return the unit if found.
 	if not chunk then return nil end
+	if not chunk.units then return nil end
 	
-	local uChk = chunk.units[gid] or nil
-
-	if not uChk then
-		if not pName then return end
-		uChk = {gid = gid, class = select(2, UnitClass(pName)), name = pName, nfirst = time(), ntime = 0}
-		chunk.units[gid] = uChk
+	if not chunk.units[gid] then
+		if not pName then return nil end
+		chunk.units[gid] = {gid = gid, class = select(2, UnitClass(pName)), name = pName, nfirst = time(), ntime = 0}
 	end
 	
-	--set our time slots
-	if not uChk.nfirst then
-		uChk.nfirst = time()
+	--set our time slots (this is for total not current)
+	if not chunk.units[gid].nfirst then
+		chunk.units[gid].nfirst = time()
 	end
-	uChk.nlast = time() --this updates the last time the player had preformed an action (each Unit_Seek use)
+	chunk.units[gid].nlast = time() --this updates the last time the player had preformed an action (each Unit_Seek use)
 
-	return uChk
+	return chunk.units[gid]
 end
 
 function f:Unit_UpdateTimeActive(chunk)
@@ -179,8 +169,9 @@ function f:Unit_TimeActive(chunk, units)
 			totaltime = units.ntime
 		end
 		
+		--if a chunk is in progress, add the time to the totaltime.
 		if not chunk.endtime and units.nfirst then
-			totaltime = totaltime + units.nlast - units.nfirst
+			totaltime = totaltime + (units.nlast - units.nfirst)
 		end
 	end
 	
@@ -242,9 +233,6 @@ function f:Pet_Parse()
 end
 
 function f:Pet_Reallocate(cl_action)
-if cl_action and cl_action.unitName then
-	print('pet parse: '..cl_action.unitName)
-end
 	if cl_action and not UnitIsPlayer(cl_action.unitName) then
 		if cl_action.unitFlags and band(cl_action.unitFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN) ~= 0 then
 			if band(cl_action.unitFlags, COMBATLOG_OBJECT_AFFILIATION_MINE) ~= 0 then
@@ -252,7 +240,6 @@ end
 				--Greater Fire Elementals, Amry of the Dead, etc..
 				cl_action.unitName = UnitName("player")
 				cl_action.unitGID = UnitGUID("player")
-				print('Found1: '..cl_action.unitGID.."<>"..cl_action.unitName)
 			end
 		end
 		--find pet and attach real owner
@@ -260,7 +247,6 @@ end
 		if uGUID and uName then
 			cl_action.unitGID = uGUID
 			cl_action.unitName = uName
-			print('Found2: '..cl_action.unitGID.."<>"..cl_action.unitName.."<Owner>"..uGUID..":"..uName)
 		end
 	end
 end
@@ -282,7 +268,6 @@ end
 
 function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 	if XanDPS_DB and XanDPS_DB.disabled then return end
-	
 	--NOTE: RAID_FLAGS is used to only parse events only if they are in a raid/party/or player(mine)
 	
 	local SRC_GOOD = nil
@@ -290,6 +275,13 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 	local SRC_GOOD_NOPET = nil
 	local DST_GOOD_NOPET = nil
 
+	--Start a chunk session if someone including the player is in combat
+	if not f.timechunk.current and band(srcFlags, RAID_FLAGS) ~= 0 and eventtype ~= 'SPELL_SUMMON' then
+		if f:RaidParty_InCombat() then
+			f:StartChunk()
+		end
+	end
+	
 	-- Pet summons, guardians (only for raid/party/mine)
 	if eventtype == 'SPELL_SUMMON' and band(srcFlags, RAID_FLAGS) ~= 0 then
 		--if a pet summons a pet (IE Fire Elemental Totem -> Summons Greater Fire Elemental)
@@ -297,22 +289,18 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 		if unitpets[srcGUID] then
 			--if the source is already a pet then grab the data and associate with owner
 			unitpets[dstGUID] = {gid = unitpets[srcGUID].gid, name = unitpets[srcGUID].name}
-			print('Pet is source: '..(srcName or 'unknown').." <> "..(unitpets[srcGUID].name or 'unknown'))
 		else
-			--if it's not a pet summoning (ie. fire elemental totem), then add pet with owner
+			--if it's NOT a pet summoning (ie. fire elemental totem), then add pet with owner
 			unitpets[dstGUID] = {gid = srcGUID, name = srcName}
-			print('New Pet: '..(srcName or 'unknown')..":"..(dstGUID or 'unknown'))
 		end
 	end
-	
+
 	if eventtype == 'UNIT_DIED' and unitpets[dstGUID] then
-		--keep the pet array clean and small
+		--keep the pet array clean and small, note for some reason UNIT_DIED is not always fired
 		unitpets[dstGUID] = nil
-		print('pet died: '..dstGUID.." <> "..(dstName or 'unknown'))
 	end
 
 	if f.timechunk.current and CL_events[eventtype] then
-
 		for i, module in ipairs(CL_events[eventtype]) do
 			local fail = false
 			
@@ -384,7 +372,7 @@ function f:GetChunkTime(chunk)
 	end
 end
 
-function f:RaidPartyCombat()
+function f:RaidParty_InCombat()
 	if GetNumRaidMembers() > 0 then
 		for i = 1, GetNumRaidMembers(), 1 do
 			if UnitExists("raid"..i) and UnitAffectingCombat("raid"..i) then
@@ -397,6 +385,8 @@ function f:RaidPartyCombat()
 				return true
 			end
 		end
+	elseif InCombatLockdown() then
+		return true
 	end
 end
 

@@ -11,7 +11,7 @@ local module, oldminor = LibStub:NewLibrary(module_name, 1)
 if not module then return end
 
 -------------------
---REPORT
+--DATA
 -------------------
 
 function module:Data_HPS(chunk, units, uGUID)

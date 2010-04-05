@@ -11,7 +11,7 @@ local module, oldminor = LibStub:NewLibrary(module_name, 1)
 if not module then return end
 
 -------------------
---REPORT
+--DATA
 -------------------
 
 function module:Data_DPS(chunk, units, uGUID)
@@ -27,7 +27,7 @@ function module:Data_DPS(chunk, units, uGUID)
 	end
 	
 	local totaltime = XanDPS:Unit_TimeActive(chunk, units)
-	
+
 	--return DPS
 	if units then
 		--we want unit DPS
@@ -103,6 +103,7 @@ end
 local function SwingDamage(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 	if srcGUID ~= dstGUID then
 		local samount, soverkill, sschool, sresisted, sblocked, sabsorbed, scritical, sglancing, scrushing = ...
+		
 		dmg.unitGID = srcGUID
 		dmg.unitName = srcName
 		dmg.unitFlags = srcFlags
