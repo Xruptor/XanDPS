@@ -38,7 +38,7 @@ function module:Data_HPS(chunk, units, uGUID)
 	end
 end
 
-function module:Data_Overhealing(chunk, units, uGUID)
+function module:Data_Overhealing(chunk, units, uGUID, OH_HPS)
 	--this function returns the collected data for overhealing
 	
 	if uGUID then
@@ -50,13 +50,25 @@ function module:Data_Overhealing(chunk, units, uGUID)
 		end
 	end
 	
-	--return overhealing
-	if units then
-		--we want unit overhealing
-		return units.overhealing or 0
+	if OH_HPS then
+		--show overhealing (healing per second)
+		local totaltime = XanDPS:Unit_TimeActive(chunk, units)
+		if units then
+			--we want unit overhealing
+			return (units.overhealing or 0) / math.max(1, totaltime)
+		else
+			--we want chunk overhealing
+			return (chunk.overhealing or 0) / math.max(1, XanDPS:GetChunkTime(chunk))
+		end
 	else
-		--we want chunk overhealing
-		return chunk.overhealing or 0
+		--return overhealing
+		if units then
+			--we want unit overhealing
+			return units.overhealing or 0
+		else
+			--we want chunk overhealing
+			return chunk.overhealing or 0
+		end
 	end
 end
 
@@ -93,7 +105,7 @@ local function log_data(chunk, heal)
 	if not heal then return end
 	
 	--seek the unit (will add unit if not available)
-	local uChk =  XanDPS:Unit_Seek(chunk, heal.unitGID, heal.unitName)
+	local uChk =  XanDPS:Unit_Seek(chunk, heal.unitGUID, heal.unitName)
 	
 	if uChk then
 		--you need to subtract the overhealing
@@ -112,7 +124,7 @@ end
 local function SpellHeal(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 	local spellId, spellName, spellSchool, samount, soverhealing, absorbed, scritical = ...
 	
-	heal.unitGID = srcGUID
+	heal.unitGUID = srcGUID
 	heal.unitName = srcName
 	heal.unitFlags = srcFlags
 	heal.dstname = dstName

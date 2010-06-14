@@ -71,7 +71,7 @@ local function log_data(chunk, dmg)
 	if not dmg then return end
 	
 	--seek the unit (will add unit if not available)
-	local uChk =  XanDPS:Unit_Seek(chunk, dmg.unitGID, dmg.unitName)
+	local uChk =  XanDPS:Unit_Seek(chunk, dmg.unitGUID, dmg.unitName)
 	
 	if uChk then
 		local amount = dmg.amount or 0
@@ -88,7 +88,7 @@ local function SpellDamage(timestamp, eventtype, srcGUID, srcName, srcFlags, dst
 	if srcGUID ~= dstGUID then
 		local spellId, spellName, spellSchool, samount, soverkill, sschool, sresisted, sblocked, sabsorbed, scritical, sglancing, scrushing = ...
 
-		dmg.unitGID = srcGUID
+		dmg.unitGUID = srcGUID
 		dmg.unitName = srcName
 		dmg.unitFlags = srcFlags
 		dmg.dstname = dstName
@@ -104,7 +104,7 @@ local function SwingDamage(timestamp, eventtype, srcGUID, srcName, srcFlags, dst
 	if srcGUID ~= dstGUID then
 		local samount, soverkill, sschool, sresisted, sblocked, sabsorbed, scritical, sglancing, scrushing = ...
 		
-		dmg.unitGID = srcGUID
+		dmg.unitGUID = srcGUID
 		dmg.unitName = srcName
 		dmg.unitFlags = srcFlags
 		dmg.dstname = dstName
@@ -119,7 +119,7 @@ end
 local function SwingMissed(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 	if srcGUID ~= dstGUID then
 
-		dmg.unitGID = srcGUID
+		dmg.unitGUID = srcGUID
 		dmg.unitName = srcName
 		dmg.unitFlags = srcFlags
 		dmg.dstname = dstName
@@ -135,7 +135,7 @@ local function SpellMissed(timestamp, eventtype, srcGUID, srcName, srcFlags, dst
 	if srcGUID ~= dstGUID then
 		local spellId, spellName, spellSchool, missType, samount = ...
 		
-		dmg.unitGID = srcGUID
+		dmg.unitGUID = srcGUID
 		dmg.unitName = srcName
 		dmg.unitFlags = srcFlags
 		dmg.dstname = dstName

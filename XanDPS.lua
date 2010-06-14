@@ -28,7 +28,6 @@ function f:PLAYER_LOGIN()
 	if XanDPS_DB.bgShown == nil then XanDPS_DB.bgShown = 1 end
 	if XanDPS_DB.disabled == nil then XanDPS_DB.disabled = false end
 	
-	f:RegisterEvent("PLAYER_REGEN_DISABLED")
 	f:RegisterEvent("PLAYER_ENTERING_WORLD")
 	f:RegisterEvent("PARTY_MEMBERS_CHANGED")
 	f:RegisterEvent("RAID_ROSTER_UPDATE")
@@ -38,15 +37,11 @@ function f:PLAYER_LOGIN()
 	local ver = GetAddOnMetadata("XanDPS","Version") or '1.0'
 	DEFAULT_CHAT_FRAME:AddMessage(string.format(XANDPS_LOADED, ver or "1.0"))
 	
+	--setup display update tick (every one second)
+	timerLib:ScheduleRepeatingTimer("DisplayUpdate", f.DisplayUpdate, 1)
+	
 	f:UnregisterEvent("PLAYER_LOGIN")
 	f.PLAYER_LOGIN = nil
-end
-
-function f:PLAYER_REGEN_DISABLED()
-	--initiates the creation of chunked time data if we haven't started one already
-	if not XanDPS_DB.disabled and not f.timechunk.current then
-		f:StartChunk()
-	end
 end
 
 function f:PLAYER_ENTERING_WORLD()
@@ -74,6 +69,10 @@ end
 --------------------------------------------
 
 function f:StartChunk()
+	--Don't create a chuck if there is one already active
+	if f.timechunk.current then return nil end
+
+	--otherwise create a new active chunk
 	f.timechunk.current = {units = {}, starttime = time(), ntime = 0}
 
 	--Initiate total if empty
@@ -94,7 +93,7 @@ function f:EndChunk()
 	--add current chunk to total chunk time
 	f.timechunk.total.ntime = f.timechunk.total.ntime + f.timechunk.current.ntime
 	
-	--update unit data
+	--update unit data and reset the last time update
 	f:Unit_UpdateTimeActive(f.timechunk.total)
 	f:Unit_TimeReset(f.timechunk.total)
 	
@@ -104,20 +103,27 @@ function f:EndChunk()
 end
 
 function f:ChunkTick()
-	if f.timechunk.current and not f:RaidParty_InCombat() then
+	if f.timechunk.current and not f:CombatStatus() then
 		f:EndChunk()
 	end
+end
+
+function f:DisplayUpdate()
+	--if f.debug then
 	--DEBUG
-	 -- if dmgReport and UnitExists("party1") then
-		 -- local playerDPS = dmgReport:Data_DPS(f.timechunk.current, nil, UnitGUID("party1"))
-		 -- if playerDPS then print("Party 1 DPS: "..playerDPS) end
-	 -- end
-	-- if healReport then
-		-- local playerHPS = healReport:Data_HPS(f.timechunk.total, nil, UnitGUID("player"))
-		-- if playerHPS then print("HPS: "..playerHPS) end
+		--if dmgReport then
+		--	local playerDPS = dmgReport:Data_DPS(f.timechunk.total, nil, UnitGUID("player"))
+		--	if playerDPS and playerDPS > 0 then print("player: "..playerDPS) end
+		--end
+	--end
+	 if healReport then
+		--REMEMBER: If your healthbar is full you won't see any DATA_HEALING DUH! (Nothing to heal)
+		--so you have to use Data_Overhealing. (the true at the end allows for overheal HPS)
+		 --local playerHPS = healReport:Data_Overhealing(f.timechunk.total, nil, UnitGUID("player"), true)
+		 --if playerHPS and playerHPS > 0 then print("HPS: "..playerHPS) end
 		-- local playerTotalHeals = healReport:Data_Totalheals(f.timechunk.total, nil, UnitGUID("party1"))
 		-- if playerTotalHeals then print("THeals: "..playerTotalHeals) end
-	-- end
+	 end
 end
 
 --------------------------------------------
@@ -236,16 +242,16 @@ function f:Pet_Reallocate(cl_action)
 	if cl_action and not UnitIsPlayer(cl_action.unitName) then
 		if cl_action.unitFlags and band(cl_action.unitFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN) ~= 0 then
 			if band(cl_action.unitFlags, COMBATLOG_OBJECT_AFFILIATION_MINE) ~= 0 then
-				--if guardian is players then update owner
+				--if guardian belongs to player then update owner
 				--Greater Fire Elementals, Amry of the Dead, etc..
 				cl_action.unitName = UnitName("player")
-				cl_action.unitGID = UnitGUID("player")
+				cl_action.unitGUID = UnitGUID("player")
 			end
 		end
 		--find pet and attach real owner
-		local uGUID, uName = f:Pet_Fetch(cl_action.unitGID)
+		local uGUID, uName = f:Pet_Fetch(cl_action.unitGUID)
 		if uGUID and uName then
-			cl_action.unitGID = uGUID
+			cl_action.unitGUID = uGUID
 			cl_action.unitName = uName
 		end
 	end
@@ -275,9 +281,10 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 	local SRC_GOOD_NOPET = nil
 	local DST_GOOD_NOPET = nil
 
-	--Start a chunk session if someone including the player is in combat
+	--Start a chunk session if someone in raid/party/player entered combat
+	--do not start a session if someone used a summoning spell
 	if not f.timechunk.current and band(srcFlags, RAID_FLAGS) ~= 0 and eventtype ~= 'SPELL_SUMMON' then
-		if f:RaidParty_InCombat() then
+		if f:CombatStatus() then
 			f:StartChunk()
 		end
 	end
@@ -372,22 +379,18 @@ function f:GetChunkTime(chunk)
 	end
 end
 
-function f:RaidParty_InCombat()
-	if GetNumRaidMembers() > 0 then
-		for i = 1, GetNumRaidMembers(), 1 do
-			if UnitExists("raid"..i) and UnitAffectingCombat("raid"..i) then
-				return true
-			end
-		end
-	elseif GetNumPartyMembers() > 0 then
-		for i = 1, GetNumPartyMembers(), 1 do
-			if UnitExists("party"..i) and UnitAffectingCombat("party"..i) then
-				return true
-			end
-		end
-	elseif InCombatLockdown() then
-		return true
+function f:CombatStatus()
+	for i = 1, GetNumRaidMembers(), 1 do
+		 if UnitAffectingCombat("raid"..i) or UnitAffectingCombat("raidpet"..i) then return true end
 	end
+	for i = 1, GetNumPartyMembers(), 1 do
+		if UnitAffectingCombat("party"..i) or UnitAffectingCombat("partypet"..i) then return true end
+	end
+	--the reason I put the player one last, is in the event were dead but the raid/party is still fighting
+	--if this was put on the top then all combat events would stop being tracked the moment the player died
+	if UnitAffectingCombat("player") then return true end
+	
+	return false
 end
 
 if IsLoggedIn() then f:PLAYER_LOGIN() else f:RegisterEvent("PLAYER_LOGIN") end
