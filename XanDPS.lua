@@ -394,3 +394,4 @@ function f:CombatStatus()
 end
 
 if IsLoggedIn() then f:PLAYER_LOGIN() else f:RegisterEvent("PLAYER_LOGIN") end
+
