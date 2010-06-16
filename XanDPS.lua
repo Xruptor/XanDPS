@@ -116,14 +116,14 @@ function f:DisplayUpdate()
 		--	if playerDPS and playerDPS > 0 then print("player: "..playerDPS) end
 		--end
 	--end
-	 if healReport then
+	-- if healReport then
 		--REMEMBER: If your healthbar is full you won't see any DATA_HEALING DUH! (Nothing to heal)
 		--so you have to use Data_Overhealing. (the true at the end allows for overheal HPS)
 		 --local playerHPS = healReport:Data_Overhealing(f.timechunk.total, nil, UnitGUID("player"), true)
 		 --if playerHPS and playerHPS > 0 then print("HPS: "..playerHPS) end
 		-- local playerTotalHeals = healReport:Data_Totalheals(f.timechunk.total, nil, UnitGUID("party1"))
 		-- if playerTotalHeals then print("THeals: "..playerTotalHeals) end
-	 end
+	 --end
 end
 
 --------------------------------------------
