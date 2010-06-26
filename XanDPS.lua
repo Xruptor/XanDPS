@@ -5,6 +5,7 @@
 	Basically, I wanted to minimize the amount of stuff used in terms of parsing and GUI.
 --]]
 
+local L = XanDPS_L
 local unitpets = {}
 local CL_events = {}
 local band = bit.band
@@ -32,7 +33,7 @@ function f:PLAYER_LOGIN()
 	f:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 
 	local ver = GetAddOnMetadata("XanDPS","Version") or '1.0'
-	DEFAULT_CHAT_FRAME:AddMessage(string.format(XANDPS_LOADED, ver or "1.0"))
+	DEFAULT_CHAT_FRAME:AddMessage(string.format(L["|cFF99CC33%s|r [v|cFFDF2B2B%s|r] Loaded"], "XanDPS", ver or "1.0"))
 	
 	--setup display update tick (every one second)
 	timerLib:ScheduleRepeatingTimer("DisplayUpdate", f.DisplayUpdate, 1)

@@ -4,15 +4,18 @@ Description: The display module for XanDPS
 Author: Xruptor
 Email: private message (PM) me at wowinterface.com
 ------------------------------------------------------------------------------]]
+local L = XanDPS_L
 
 local display = CreateFrame("Frame", "XanDPS_Display", UIParent)
 display:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
-function display:Register_Mode(func, event, flags)
-	if not CL_events[event] then
-		CL_events[event] = {}
+local d_modes = {}
+
+function display:Register_Mode(name, func)
+	if not d_modes[name] then
+		d_modes[name] = {}
 	end
-	tinsert(CL_events[event], {["func"] = func, ["flags"] = flags})
+	tinsert(d_modes[name], {["func"] = func, ["name"] = name})
 end
 
 -------------------
@@ -20,7 +23,7 @@ end
 -------------------
 
 function display:PLAYER_LOGIN()
-
+	--print(L["poop test"])
 	display:UnregisterEvent("PLAYER_LOGIN")
 	display = nil
 end
