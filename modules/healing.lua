@@ -14,7 +14,7 @@ if not module then return end
 --DATA
 -------------------
 
-function module:Data_HPS(chunk, units, uGUID)
+function module:UnitHPS(chunk, units, uGUID)
 	--this function returns the collected data and returns it as heals per second (effective heals)
 	
 	if uGUID then
@@ -38,7 +38,11 @@ function module:Data_HPS(chunk, units, uGUID)
 	end
 end
 
-function module:Data_Overhealing(chunk, units, uGUID, OH_HPS)
+function module:ChunkHPS(chunk, units, uGUID)
+	return module:UnitHPS(chunk, nil, nil)
+end
+
+function module:UnitOverheal(chunk, units, uGUID)
 	--this function returns the collected data for overhealing
 	
 	if uGUID then
@@ -50,29 +54,49 @@ function module:Data_Overhealing(chunk, units, uGUID, OH_HPS)
 		end
 	end
 	
-	if OH_HPS then
-		--show overhealing (healing per second)
-		local totaltime = XanDPS:Unit_TimeActive(chunk, units)
-		if units then
-			--we want unit overhealing
-			return (units.overhealing or 0) / math.max(1, totaltime)
-		else
-			--we want chunk overhealing
-			return (chunk.overhealing or 0) / math.max(1, XanDPS:GetChunkTime(chunk))
-		end
+	--return overhealing
+	if units then
+		--we want unit overhealing
+		return units.overhealing or 0
 	else
-		--return overhealing
-		if units then
-			--we want unit overhealing
-			return units.overhealing or 0
-		else
-			--we want chunk overhealing
-			return chunk.overhealing or 0
-		end
+		--we want chunk overhealing
+		return chunk.overhealing or 0
 	end
 end
 
-function module:Data_Totalheals(chunk, units, uGUID)
+function module:ChunkOverheal(chunk, units, uGUID)
+	return module:UnitOverheal(chunk, nil, nil)
+end
+
+function module:UnitOHPS(chunk, units, uGUID)
+	--this function returns the collected data for overhealing per second OHPS
+	
+	if uGUID then
+		local tmpG = XanDPS:Unit_Fetch(chunk, uGUID)
+		if tmpG then
+			units = tmpG
+		else
+			return 0
+		end
+	end
+	
+	--show overhealing per second OHPS
+	local totaltime = XanDPS:Unit_TimeActive(chunk, units)
+	
+	if units then
+		--we want unit overhealing
+		return (units.overhealing or 0) / math.max(1, totaltime)
+	else
+		--we want chunk overhealing
+		return (chunk.overhealing or 0) / math.max(1, XanDPS:GetChunkTime(chunk))
+	end
+end
+
+function module:ChunkOHPS(chunk, units, uGUID)
+	return module:UnitOHPS(chunk, nil, nil)
+end
+
+function module:UnitTotal(chunk, units, uGUID)
 	--this function returns the collected data for total heals
 	
 	if uGUID then
@@ -94,6 +118,10 @@ function module:Data_Totalheals(chunk, units, uGUID)
 	end
 end
 
+function module:ChunkTotal(chunk, units, uGUID)
+	return module:UnitTotal(chunk, nil, nil)
+end
+
 -------------------
 --PARSERS
 -------------------
@@ -105,7 +133,7 @@ local function log_data(chunk, heal)
 	if not heal then return end
 	
 	--seek the unit (will add unit if not available)
-	local uChk =  XanDPS:Unit_Seek(chunk, heal.unitGUID, heal.unitName)
+	local uChk =  XanDPS:Unit_Check(chunk, heal.unitGUID, heal.unitName)
 	
 	if uChk then
 		--you need to subtract the overhealing

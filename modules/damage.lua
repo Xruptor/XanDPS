@@ -14,7 +14,7 @@ if not module then return end
 --DATA
 -------------------
 
-function module:Data_DPS(chunk, units, uGUID)
+function module:UnitDPS(chunk, units, uGUID)
 	--this function returns the collected data for DPS
 	
 	if uGUID then
@@ -38,7 +38,11 @@ function module:Data_DPS(chunk, units, uGUID)
 	end
 end
 
-function module:Data_TotalDamage(chunk, units, uGUID)
+function module:ChunkDPS(chunk, units, uGUID)
+	return module:UnitDPS(chunk, nil, nil)
+end
+
+function module:UnitTotal(chunk, units, uGUID)
 	--this function returns the collected data for total damage
 	
 	if uGUID then
@@ -60,6 +64,10 @@ function module:Data_TotalDamage(chunk, units, uGUID)
 	end
 end
 
+function module:ChunkTotal(chunk, units, uGUID)
+	return module:UnitTotal(chunk, nil, nil)
+end
+
 -------------------
 --PARSERS
 -------------------
@@ -71,7 +79,7 @@ local function log_data(chunk, dmg)
 	if not dmg then return end
 	
 	--seek the unit (will add unit if not available)
-	local uChk =  XanDPS:Unit_Seek(chunk, dmg.unitGUID, dmg.unitName)
+	local uChk =  XanDPS:Unit_Check(chunk, dmg.unitGUID, dmg.unitName)
 	
 	if uChk then
 		local amount = dmg.amount or 0
