@@ -177,6 +177,16 @@ function fd:PLAYER_LOGIN()
 	XanDPS:Register_CL(SpellHeal, 'SPELL_HEAL', {SRC_GOOD = true})
 	XanDPS:Register_CL(SpellHeal, 'SPELL_PERIODIC_HEAL', {SRC_GOOD = true})
 	
+	XanDPS_Display:Register_Mode("Player HPS", module.UnitHPS, { 0, 0.58, 0 })
+	XanDPS_Display:Register_Mode("Player Healing", module.UnitTotal, { 0, 0.58, 0 })
+	XanDPS_Display:Register_Mode("Player Overhealing", module.UnitOverheal, { 0.008, 0.65, 0.41 })
+	XanDPS_Display:Register_Mode("Player OHPS", module.UnitOHPS, { 0.008, 0.65, 0.41 })
+	
+	XanDPS_Display:Register_Mode("Total HPS", module.ChunkHPS, { 0, 0.47, 0 })
+	XanDPS_Display:Register_Mode("Total Healing", module.ChunkTotal, { 0, 0.47, 0 })
+	XanDPS_Display:Register_Mode("Total Overhealing", module.ChunkOverheal, { 0.008, 0.57, 0.36 })
+	XanDPS_Display:Register_Mode("Total OHPS", module.ChunkOHPS, { 0.008, 0.57, 0.36 })
+	
 	fd:UnregisterEvent("PLAYER_LOGIN")
 	fd = nil
 end

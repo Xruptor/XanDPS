@@ -178,10 +178,10 @@ function fd:PLAYER_LOGIN()
 	XanDPS:Register_CL(SpellMissed, 'RANGE_MISSED', {SRC_GOOD = true, DST_BAD = true})
 	XanDPS:Register_CL(SpellMissed, 'SPELL_BUILDING_MISSED', {SRC_GOOD = true, DST_BAD = true})
 	
-	XanDPS_Display:Register_Mode("Player DPS", module.UnitDPS)
-	XanDPS_Display:Register_Mode("Player Damage", module.UnitTotal)
-	XanDPS_Display:Register_Mode("Total DPS", module.ChunkDPS)
-	XanDPS_Display:Register_Mode("Total Damage", module.ChunkTotal)
+	XanDPS_Display:Register_Mode("Player DPS", module.UnitDPS, { 0.84, 0.15, 0.15 })
+	XanDPS_Display:Register_Mode("Player Damage", module.UnitTotal, { 0.84, 0.15, 0.15 })
+	XanDPS_Display:Register_Mode("Total DPS", module.ChunkDPS, { 0.81, 0.06, 0.06 })
+	XanDPS_Display:Register_Mode("Total Damage", module.ChunkTotal, { 0.81, 0.06, 0.06 })
 	
 	fd:UnregisterEvent("PLAYER_LOGIN")
 	fd = nil
