@@ -14,10 +14,9 @@ if not module then return end
 --DATA
 -------------------
 
-function module:UnitDPS(chunk, units, uGUID)
+local function UnitDPS(chunk, units, uGUID)
 	--this function returns the collected data for DPS
-	
-	if uGUID then
+	if uGUID and not units then
 		local tmpG = XanDPS:Unit_Fetch(chunk, uGUID)
 		if tmpG then
 			units = tmpG
@@ -38,14 +37,14 @@ function module:UnitDPS(chunk, units, uGUID)
 	end
 end
 
-function module:ChunkDPS(chunk, units, uGUID)
-	return module:UnitDPS(chunk, nil, nil)
+local function ChunkDPS(chunk, units, uGUID)
+	return UnitDPS(chunk, nil, nil)
 end
 
-function module:UnitTotal(chunk, units, uGUID)
+local function UnitTotal(chunk, units, uGUID)
 	--this function returns the collected data for total damage
 	
-	if uGUID then
+	if uGUID and not units then
 		local tmpG = XanDPS:Unit_Fetch(chunk, uGUID)
 		if tmpG then
 			units = tmpG
@@ -64,8 +63,8 @@ function module:UnitTotal(chunk, units, uGUID)
 	end
 end
 
-function module:ChunkTotal(chunk, units, uGUID)
-	return module:UnitTotal(chunk, nil, nil)
+local function ChunkTotal(chunk, units, uGUID)
+	return UnitTotal(chunk, nil, nil)
 end
 
 -------------------
@@ -178,10 +177,10 @@ function fd:PLAYER_LOGIN()
 	XanDPS:Register_CL(SpellMissed, 'RANGE_MISSED', {SRC_GOOD = true, DST_BAD = true})
 	XanDPS:Register_CL(SpellMissed, 'SPELL_BUILDING_MISSED', {SRC_GOOD = true, DST_BAD = true})
 	
-	XanDPS_Display:Register_Mode("Player DPS", module.UnitDPS, { 0.84, 0.15, 0.15 })
-	XanDPS_Display:Register_Mode("Player Damage", module.UnitTotal, { 0.84, 0.15, 0.15 })
-	XanDPS_Display:Register_Mode("Total DPS", module.ChunkDPS, { 0.81, 0.06, 0.06 })
-	XanDPS_Display:Register_Mode("Total Damage", module.ChunkTotal, { 0.81, 0.06, 0.06 })
+	XanDPS_Display:Register_Mode(module_name, "Player DPS", UnitDPS, { 0.84, 0.15, 0.15 })
+	XanDPS_Display:Register_Mode(module_name, "Player Damage", UnitTotal, { 0.84, 0.15, 0.15 })
+	XanDPS_Display:Register_Mode(module_name, "Total DPS", ChunkDPS, { 0.81, 0.06, 0.06 })
+	XanDPS_Display:Register_Mode(module_name, "Total Damage", ChunkTotal, { 0.81, 0.06, 0.06 })
 	
 	fd:UnregisterEvent("PLAYER_LOGIN")
 	fd = nil

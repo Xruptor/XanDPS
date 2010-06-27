@@ -14,10 +14,10 @@ if not module then return end
 --DATA
 -------------------
 
-function module:UnitHPS(chunk, units, uGUID)
+local function UnitHPS(chunk, units, uGUID)
 	--this function returns the collected data and returns it as heals per second (effective heals)
 	
-	if uGUID then
+	if uGUID and not units then
 		local tmpG = XanDPS:Unit_Fetch(chunk, uGUID)
 		if tmpG then
 			units = tmpG
@@ -38,14 +38,14 @@ function module:UnitHPS(chunk, units, uGUID)
 	end
 end
 
-function module:ChunkHPS(chunk, units, uGUID)
-	return module:UnitHPS(chunk, nil, nil)
+local function ChunkHPS(chunk, units, uGUID)
+	return UnitHPS(chunk, nil, nil)
 end
 
-function module:UnitOverheal(chunk, units, uGUID)
+local function UnitOverheal(chunk, units, uGUID)
 	--this function returns the collected data for overhealing
 	
-	if uGUID then
+	if uGUID and not units then
 		local tmpG = XanDPS:Unit_Fetch(chunk, uGUID)
 		if tmpG then
 			units = tmpG
@@ -64,14 +64,14 @@ function module:UnitOverheal(chunk, units, uGUID)
 	end
 end
 
-function module:ChunkOverheal(chunk, units, uGUID)
-	return module:UnitOverheal(chunk, nil, nil)
+local function ChunkOverheal(chunk, units, uGUID)
+	return UnitOverheal(chunk, nil, nil)
 end
 
-function module:UnitOHPS(chunk, units, uGUID)
+local function UnitOHPS(chunk, units, uGUID)
 	--this function returns the collected data for overhealing per second OHPS
 	
-	if uGUID then
+	if uGUID and not units then
 		local tmpG = XanDPS:Unit_Fetch(chunk, uGUID)
 		if tmpG then
 			units = tmpG
@@ -92,14 +92,14 @@ function module:UnitOHPS(chunk, units, uGUID)
 	end
 end
 
-function module:ChunkOHPS(chunk, units, uGUID)
-	return module:UnitOHPS(chunk, nil, nil)
+local function ChunkOHPS(chunk, units, uGUID)
+	return UnitOHPS(chunk, nil, nil)
 end
 
-function module:UnitTotal(chunk, units, uGUID)
+local function UnitTotal(chunk, units, uGUID)
 	--this function returns the collected data for total heals
 	
-	if uGUID then
+	if uGUID and not units then
 		local tmpG = XanDPS:Unit_Fetch(chunk, uGUID)
 		if tmpG then
 			units = tmpG
@@ -118,8 +118,8 @@ function module:UnitTotal(chunk, units, uGUID)
 	end
 end
 
-function module:ChunkTotal(chunk, units, uGUID)
-	return module:UnitTotal(chunk, nil, nil)
+local function ChunkTotal(chunk, units, uGUID)
+	return UnitTotal(chunk, nil, nil)
 end
 
 -------------------
@@ -177,15 +177,15 @@ function fd:PLAYER_LOGIN()
 	XanDPS:Register_CL(SpellHeal, 'SPELL_HEAL', {SRC_GOOD = true})
 	XanDPS:Register_CL(SpellHeal, 'SPELL_PERIODIC_HEAL', {SRC_GOOD = true})
 	
-	XanDPS_Display:Register_Mode("Player HPS", module.UnitHPS, { 0, 0.58, 0 })
-	XanDPS_Display:Register_Mode("Player Healing", module.UnitTotal, { 0, 0.58, 0 })
-	XanDPS_Display:Register_Mode("Player Overhealing", module.UnitOverheal, { 0.008, 0.65, 0.41 })
-	XanDPS_Display:Register_Mode("Player OHPS", module.UnitOHPS, { 0.008, 0.65, 0.41 })
+	XanDPS_Display:Register_Mode(module_name, "Player HPS", UnitHPS, { 0, 0.58, 0 })
+	XanDPS_Display:Register_Mode(module_name, "Player Healing", UnitTotal, { 0, 0.58, 0 })
+	XanDPS_Display:Register_Mode(module_name, "Player Overhealing", UnitOverheal, { 0.008, 0.65, 0.41 })
+	XanDPS_Display:Register_Mode(module_name, "Player OHPS", UnitOHPS, { 0.008, 0.65, 0.41 })
 	
-	XanDPS_Display:Register_Mode("Total HPS", module.ChunkHPS, { 0, 0.47, 0 })
-	XanDPS_Display:Register_Mode("Total Healing", module.ChunkTotal, { 0, 0.47, 0 })
-	XanDPS_Display:Register_Mode("Total Overhealing", module.ChunkOverheal, { 0.008, 0.57, 0.36 })
-	XanDPS_Display:Register_Mode("Total OHPS", module.ChunkOHPS, { 0.008, 0.57, 0.36 })
+	XanDPS_Display:Register_Mode(module_name, "Total HPS", ChunkHPS, { 0, 0.47, 0 })
+	XanDPS_Display:Register_Mode(module_name, "Total Healing", ChunkTotal, { 0, 0.47, 0 })
+	XanDPS_Display:Register_Mode(module_name, "Total Overhealing", ChunkOverheal, { 0.008, 0.57, 0.36 })
+	XanDPS_Display:Register_Mode(module_name, "Total OHPS", ChunkOHPS, { 0.008, 0.57, 0.36 })
 	
 	fd:UnregisterEvent("PLAYER_LOGIN")
 	fd = nil

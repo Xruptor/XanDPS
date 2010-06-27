@@ -28,8 +28,8 @@ local function lenTable(t)
 	return n
 end
 
-function display:Register_Mode(name, func, bgcolor)
-	d_modes[name] = {["func"] = func, ["name"] = name, ["bgcolor"] = bgcolor}
+function display:Register_Mode(module, name, func, bgcolor)
+	d_modes[name] = {["module"] = module, ["name"] = name, ["func"] = func, ["bgcolor"] = bgcolor}
 end
 
 function display:CreateDisplay()
@@ -205,8 +205,8 @@ function display:UpdateViewStyle()
 			bF.vName = v.name
 			bF.vClass = v.class
 			bF.vGID = v.gid
-			--lets use the correct display function
-			bF.vValue = d_modes[display.viewStyle].func(dChk, v, nil)
+			--lets use the correct display function from our module
+			bF.vValue = d_modes[display.viewStyle].func(dChk, v, v.gid)
 			--now lets do class color
 			local color = RAID_CLASS_COLORS[v.class] or RAID_CLASS_COLORS["PRIEST"]
 			bF:SetStatusBarColor(color.r, color.g, color.b)
@@ -233,7 +233,7 @@ function display:UpdateViewStyle()
 		--reposition and display according to max number of bars we can display
 		for i = 1, #display.bars do
 			if i < maxBars then
-				display.bars[i].left:SetText(display.bars[i].vName)
+				display.bars[i].left:SetText(i..". "..display.bars[i].vName)
 				display.bars[i].right:SetText(display.bars[i].vValue)
 				display.bars[i]:SetPoint("TOP", display, "TOP", 0, ((i - 1) * -display.barSize) - 32)
 				display.bars[i]:Show()
