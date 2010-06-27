@@ -19,6 +19,7 @@ function display:Register_Mode(name, func, bgcolor)
 end
 
 function display:CreateDisplay()
+
 	display:SetPoint("CENTER")
 	display:SetWidth(200)
 	display:SetHeight(250)
@@ -110,6 +111,53 @@ function display:CreateDisplay()
 
 	closeButton.closeTexture = closeTexture
 	display.closeButton = closeButton
+	
+	--display:Hide()
+end
+
+function display:CreateBar(size)
+
+	local texture = [[Interface\addons\XanDPS\media\minimalist.tga]]
+	local bar = CreateFrame("Statusbar", nil, self)
+	bar:SetPoint("LEFT", 1, 0)
+	bar:SetPoint("RIGHT", - 1, 0)
+	bar:SetStatusBarTexture(texture)
+	bar:SetMinMaxValues(0, 100)
+	bar:EnableMouse(true)
+	bar:SetHeight(size)
+	
+	--create background
+	local bg = bar:CreateTexture(nil, "BACKGROUND")
+	bg:SetTexture(texture)
+	bg:SetAllPoints(bar)
+	bar.bg = bg
+	
+	--bar:SetScript("OnEnter", )
+	--bar:SetScript("OnLeave", )
+
+	--left text
+	local left = bar:CreateFontString(nil, "OVERLAY")
+	left:SetFont(STANDARD_TEXT_FONT, size-2)
+	left:SetPoint("TOP")
+	left:SetPoint("BOTTOM")
+	left:SetPoint("LEFT", bar, "LEFT", 5, 0)
+	left:SetShadowColor(0, 0, 0, 0.8)
+	left:SetShadowOffset(0.8, - 0.8)
+	bar.left = left
+
+	local right = bar:CreateFontString(nil, "OVERLAY")
+	right:SetFont(STANDARD_TEXT_FONT, size-2)
+	right:SetJustifyH("RIGHT")
+	right:SetPoint("TOP")
+	right:SetPoint("BOTTOM")
+	right:SetPoint("RIGHT", self, "RIGHT", - 5, 0)
+	right:SetShadowColor(0, 0, 0, 0.8)
+	right:SetShadowOffset(0.8, - 0.8)
+	bar.right = right
+	
+	bar:Hide()
+	
+	return bar
 end
 
 function display:SaveLayout(frame)
