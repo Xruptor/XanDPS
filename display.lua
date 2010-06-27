@@ -5,7 +5,6 @@ Author: Xruptor
 Email: private message (PM) me at wowinterface.com
 ------------------------------------------------------------------------------]]
 local L = XanDPS_L
-local timerLib = LibStub:GetLibrary("LibSimpleTimer-1.0", true)
 
 local display = CreateFrame("Frame", "XanDPS_Display", UIParent)
 display:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)

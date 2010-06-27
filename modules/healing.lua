@@ -7,8 +7,6 @@ Credits: Zarnivoop for his work on Skada
 ------------------------------------------------------------------------------]]
 
 local module_name = "XanDPS_Healing"
-local module, oldminor = LibStub:NewLibrary(module_name, 1)
-if not module then return end
 
 -------------------
 --DATA
