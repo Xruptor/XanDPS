@@ -227,14 +227,22 @@ function display:UpdateViewStyle()
 		--now lets sort
 		table.sort(display.bars, function(a,b) return a.vValue < b.vValue end)
 		
-		--reposition and display
+		--get the total max bars we can display in the current frame height
+		local maxBars = math.floor((display:GetHeight() - 32) / display.barSize)
+		
+		--reposition and display according to max number of bars we can display
 		for i = 1, #display.bars do
-			display.bars[i].left:SetText(display.bars[i].vName)
-			display.bars[i].right:SetText(display.bars[i].vValue)
-			display.bars[i]:SetPoint("TOP", display, "TOP", 0, ((i - 1) * -display.barSize) - 32)
-			display.bars[i]:Show()
+			if i < maxBars then
+				display.bars[i].left:SetText(display.bars[i].vName)
+				display.bars[i].right:SetText(display.bars[i].vValue)
+				display.bars[i]:SetPoint("TOP", display, "TOP", 0, ((i - 1) * -display.barSize) - 32)
+				display.bars[i]:Show()
+			else
+				display.bars[i]:Hide()
+			end
 		end
 	end
+	
 end
 
 -------------------
@@ -293,7 +301,7 @@ function display:RestoreLayout(frame)
 	f:SetWidth(opt.width)
 	f:SetHeight(opt.height)
 	
-	if not x or not y then
+	if (not x or not y) or (x==0 and y==0) then
 		f:ClearAllPoints();
 		f:SetPoint("CENTER", UIParent, "CENTER", 0, 0);
 		return 
@@ -324,7 +332,7 @@ end
 function display:PLAYER_LOGIN()
 	display:CreateDisplay()
 	display:RestoreLayout(display:GetName())
-	display:SetViewStyle("Player Damage", "total", 16, 12)
+	display:SetViewStyle("Player DPS", "total", 16, 12)
 	
 	--initiate the display timer
 	display:SetScript("OnUpdate", OnUpdate)

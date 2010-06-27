@@ -31,10 +31,10 @@ function module:UnitHPS(chunk, units, uGUID)
 	--return HPS
 	if units then
 		--we want unit HPS
-		return (units.healing or 0) / math.max(1, totaltime)
+		return string.format("%.1f", (units.healing or 0) / math.max(1, totaltime))
 	else
 		--we want chunk HPS
-		return (chunk.healing or 0) / math.max(1, XanDPS:GetChunkTime(chunk))
+		return string.format("%.1f", (chunk.healing or 0) / math.max(1, XanDPS:GetChunkTime(chunk)))
 	end
 end
 
@@ -85,10 +85,10 @@ function module:UnitOHPS(chunk, units, uGUID)
 	
 	if units then
 		--we want unit overhealing
-		return (units.overhealing or 0) / math.max(1, totaltime)
+		return string.format("%.1f", (units.overhealing or 0) / math.max(1, totaltime))
 	else
 		--we want chunk overhealing
-		return (chunk.overhealing or 0) / math.max(1, XanDPS:GetChunkTime(chunk))
+		return string.format("%.1f", (chunk.overhealing or 0) / math.max(1, XanDPS:GetChunkTime(chunk)))
 	end
 end
 

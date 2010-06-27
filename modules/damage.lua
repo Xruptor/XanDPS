@@ -31,10 +31,10 @@ function module:UnitDPS(chunk, units, uGUID)
 	--return DPS
 	if units then
 		--we want unit DPS
-		return (units.damage or 0) / math.max(1, totaltime)
+		return string.format("%.1f", (units.damage or 0) / math.max(1, totaltime))
 	else
 		--we want chunk DPS
-		return (chunk.damage or 0) / math.max(1, XanDPS:GetChunkTime(chunk))
+		return string.format("%.1f", (chunk.damage or 0) / math.max(1, XanDPS:GetChunkTime(chunk)))
 	end
 end
 
