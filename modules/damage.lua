@@ -25,7 +25,7 @@ function module:UnitDPS(chunk, units, uGUID)
 			return 0
 		end
 	end
-	
+
 	local totaltime = XanDPS:Unit_TimeActive(chunk, units)
 
 	--return DPS

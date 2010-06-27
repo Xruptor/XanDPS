@@ -146,7 +146,7 @@ function f:Unit_UpdateTimeActive(chunk)
 	if not chunk then return nil end
 	
 	--update unit time data
-	for k, v in ipairs(chunk.units) do
+	for k, v in pairs(chunk.units) do
 		if v.nlast then
 			v.ntime = v.ntime + (v.nlast - v.nfirst)
 		end
@@ -174,7 +174,7 @@ end
 function f:Unit_TimeReset(chunk)
 	if not chunk then return nil end
 	--NOTE: This function resets the unit time chunks
-	for k, v in ipairs(chunk.units) do
+	for k, v in pairs(chunk.units) do
 		v.nfirst = nil
 		v.nlast = nil
 	end

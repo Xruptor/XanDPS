@@ -11,12 +11,25 @@ local display = CreateFrame("Frame", "XanDPS_Display", UIParent)
 display:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
 local d_modes = {}
+local c_modes = {
+	["current"] = true,
+	["previous"] = true,
+	["total"] = true,
+}
+display.viewStyle = "default"
+display.cSession = "default"
+
+local function lenTable(t)
+	if type(t) ~= "table" then return nil end
+    local n=0 
+	for key in pairs(t) do
+		n = n + 1
+	end
+	return n
+end
 
 function display:Register_Mode(name, func, bgcolor)
-	if not d_modes[name] then
-		d_modes[name] = {}
-	end
-	tinsert(d_modes[name], {["func"] = func, ["name"] = name, ["bgcolor"] = bgcolor})
+	d_modes[name] = {["func"] = func, ["name"] = name, ["bgcolor"] = bgcolor}
 end
 
 function display:CreateDisplay()
@@ -56,7 +69,7 @@ function display:CreateDisplay()
 	end)
 
 	local header = display:CreateFontString(nil, "OVERLAY")
-	header:SetFont(STANDARD_TEXT_FONT, 16)
+	header:SetFont(STANDARD_TEXT_FONT, 12)
 	header:SetJustifyH("CENTER")
 	header:SetPoint("CENTER")
 	header:SetPoint("TOP", 0, -12)
@@ -113,10 +126,10 @@ function display:CreateDisplay()
 	closeButton.closeTexture = closeTexture
 	display.closeButton = closeButton
 	
-	--display:Hide()
+	display.bars = {}
 end
 
-function display:CreateBar(size)
+function display:CreateBar(size, fontSize)
 
 	local texture = [[Interface\addons\XanDPS\media\minimalist.tga]]
 	local bar = CreateFrame("Statusbar", nil, self)
@@ -138,7 +151,7 @@ function display:CreateBar(size)
 
 	--left text
 	local left = bar:CreateFontString(nil, "OVERLAY")
-	left:SetFont(STANDARD_TEXT_FONT, size-2)
+	left:SetFont(STANDARD_TEXT_FONT, fontSize)
 	left:SetPoint("TOP")
 	left:SetPoint("BOTTOM")
 	left:SetPoint("LEFT", bar, "LEFT", 5, 0)
@@ -147,7 +160,7 @@ function display:CreateBar(size)
 	bar.left = left
 
 	local right = bar:CreateFontString(nil, "OVERLAY")
-	right:SetFont(STANDARD_TEXT_FONT, size-2)
+	right:SetFont(STANDARD_TEXT_FONT, fontSize)
 	right:SetJustifyH("RIGHT")
 	right:SetPoint("TOP")
 	right:SetPoint("BOTTOM")
@@ -157,9 +170,76 @@ function display:CreateBar(size)
 	bar.right = right
 	
 	bar:Hide()
-	
 	return bar
 end
+
+function display:SetViewStyle(style, session, barSize, fontSize)
+	if not d_modes[style] then return end
+	if not c_modes[session] then return end
+	display.viewStyle = style
+	display.cSession = session
+	display.barSize = barSize
+	display.fontSize = fontSize
+	display.header:SetText(L[style])
+	display:SetBackdropBorderColor(unpack(d_modes[style].bgcolor))
+end
+
+function display:UpdateViewStyle()
+	if not d_modes[display.viewStyle] then return end
+	if not c_modes[display.cSession] then return end
+	if not XanDPS.timechunk then return end
+	if not XanDPS.timechunk[display.cSession] then return end
+	
+	local dChk = XanDPS.timechunk[display.cSession]
+
+	if dChk.units then
+		local totalC = 0
+		for k, v in pairs(dChk.units) do
+			totalC = totalC + 1
+			if not display.bars[totalC] then
+				--we don't have a bar to work with so lets create one
+				local bar = display:CreateBar(display.barSize, display.fontSize)
+				table.insert(display.bars, bar)
+			end
+			local bF = display.bars[totalC]
+			bF.vName = v.name
+			bF.vClass = v.class
+			bF.vGID = v.gid
+			--lets use the correct display function
+			bF.vValue = d_modes[display.viewStyle].func(dChk, v, nil)
+			--now lets do class color
+			local color = RAID_CLASS_COLORS[v.class] or RAID_CLASS_COLORS["PRIEST"]
+			bF:SetStatusBarColor(color.r, color.g, color.b)
+			bF.bg:SetVertexColor(color.r, color.g, color.b, 0.1)
+		end
+		
+		--remove unused bars
+		if #display.bars > totalC then
+			--delete from the bottom up
+			for i = #display.bars, (totalC + 1), -1 do
+				if display.bars[i] then
+					display.bars[i]:Hide()
+					table.remove(display.bars, i)
+				end
+			end
+		end
+		
+		--now lets sort
+		table.sort(display.bars, function(a,b) return a.vValue < b.vValue end)
+		
+		--reposition and display
+		for i = 1, #display.bars do
+			display.bars[i].left:SetText(display.bars[i].vName)
+			display.bars[i].right:SetText(display.bars[i].vValue)
+			display.bars[i]:SetPoint("TOP", display, "TOP", 0, ((i - 1) * -display.barSize) - 32)
+			display.bars[i]:Show()
+		end
+	end
+end
+
+-------------------
+--POSITION FUNCTIONS
+-------------------
 
 function display:SaveLayout(frame)
 	if not XanDPS_DB then XanDPS_DB = {} end
@@ -235,8 +315,8 @@ end
 local timerCount = 0
 local OnUpdate = function(self, elapsed)
 	timerCount = timerCount + elapsed
-	if timerCount > 1 then
-		print('test')
+	if timerCount > 0.5 then
+		self:UpdateViewStyle()
 		timerCount = 0
 	end
 end
@@ -244,8 +324,9 @@ end
 function display:PLAYER_LOGIN()
 	display:CreateDisplay()
 	display:RestoreLayout(display:GetName())
+	display:SetViewStyle("Player Damage", "total", 16, 12)
 	
-	--initiate the timer
+	--initiate the display timer
 	display:SetScript("OnUpdate", OnUpdate)
 	
 	display:UnregisterEvent("PLAYER_LOGIN")
