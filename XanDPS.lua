@@ -9,12 +9,20 @@ local L = XanDPS_L
 local unitpets = {}
 local CL_events = {}
 local band = bit.band
-local timerLib = LibStub:GetLibrary("LibSimpleTimer-1.0", true)
 
 local f = CreateFrame("Frame", "XanDPS", UIParent)
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
 f.timechunk = {}
+
+local timerCount = 0
+local OnUpdate = function(self, elapsed)
+	timerCount = timerCount + elapsed
+	if timerCount > 1 then
+		self:ChunkTick()
+		timerCount = 0
+	end
+end
 
 --------------------------------------------
 -----EVENTS
@@ -34,9 +42,6 @@ function f:PLAYER_LOGIN()
 
 	local ver = GetAddOnMetadata("XanDPS","Version") or '1.0'
 	DEFAULT_CHAT_FRAME:AddMessage(string.format(L["|cFF99CC33%s|r [v|cFFDF2B2B%s|r] Loaded"], "XanDPS", ver or "1.0"))
-	
-	--setup display update tick (every one second)
-	timerLib:ScheduleRepeatingTimer("DisplayUpdate", f.DisplayUpdate, 1)
 	
 	f:UnregisterEvent("PLAYER_LOGIN")
 	f.PLAYER_LOGIN = nil
@@ -77,8 +82,9 @@ function f:StartChunk()
 	if f.timechunk.total == nil then
 		f.timechunk.total = {units = {}, starttime = time(), ntime = 0}
 	end
-
-	timerLib:ScheduleRepeatingTimer("Tick", f.ChunkTick, 1)
+	
+	--initiate the timer
+	f:SetScript("OnUpdate", OnUpdate)
 end
 
 function f:EndChunk()
@@ -97,7 +103,7 @@ function f:EndChunk()
 	
 	--Reset our timer and current chunk
 	f.timechunk.current = nil
-	timerLib:CancelTimer("Tick") --cancel the tick timer
+	f:SetScript("OnUpdate", nil) --cancel the tick timer
 end
 
 function f:ChunkTick()
@@ -105,29 +111,6 @@ function f:ChunkTick()
 	if f.timechunk.current and not f:CombatStatus() then
 		f:EndChunk()
 	end
-end
-
-function f:DisplayUpdate()
-	--if f.debug then
-	
-	--MODULES
-	--local dmgReport = LibStub:GetLibrary("XanDPS_Damage", true)
-	--local healReport = LibStub:GetLibrary("XanDPS_Healing", true)
-	
-	--DEBUG
-		--if dmgReport then
-		--	local playerDPS = dmgReport:Data_UnitDPS(f.timechunk.total, nil, UnitGUID("player"))
-		--	if playerDPS and playerDPS > 0 then print("player: "..playerDPS) end
-		--end
-	--end
-	-- if healReport then
-		--REMEMBER: If your healthbar is full you won't see any DATA_HEALING DUH! (Nothing to heal)
-		--so you have to use Data_Overhealing. (the true at the end allows for overheal HPS)
-		 --local playerHPS = healReport:Data_Overhealing(f.timechunk.total, nil, UnitGUID("player"), true)
-		 --if playerHPS and playerHPS > 0 then print("HPS: "..playerHPS) end
-		-- local playerTotalHeals = healReport:Data_Totalheals(f.timechunk.total, nil, UnitGUID("party1"))
-		-- if playerTotalHeals then print("THeals: "..playerTotalHeals) end
-	 --end
 end
 
 --------------------------------------------

@@ -5,6 +5,7 @@ Author: Xruptor
 Email: private message (PM) me at wowinterface.com
 ------------------------------------------------------------------------------]]
 local L = XanDPS_L
+local timerLib = LibStub:GetLibrary("LibSimpleTimer-1.0", true)
 
 local display = CreateFrame("Frame", "XanDPS_Display", UIParent)
 display:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
@@ -231,11 +232,21 @@ end
 --LOAD UP
 -------------------
 
+local timerCount = 0
+local OnUpdate = function(self, elapsed)
+	timerCount = timerCount + elapsed
+	if timerCount > 1 then
+		print('test')
+		timerCount = 0
+	end
+end
+
 function display:PLAYER_LOGIN()
-	--print(L["test"])
-	
 	display:CreateDisplay()
 	display:RestoreLayout(display:GetName())
+	
+	--initiate the timer
+	display:SetScript("OnUpdate", OnUpdate)
 	
 	display:UnregisterEvent("PLAYER_LOGIN")
 	display.PLAYER_LOGIN = nil
