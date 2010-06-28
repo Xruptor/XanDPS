@@ -368,6 +368,19 @@ function f:GetChunkTime(chunk)
 	end
 end
 
+function f:ResetAll()
+	f:SetScript("OnUpdate", nil) --cancel the tick timer
+	if f.timechunk.previous then
+		f.timechunk.previous = nil
+	end
+	if f.timechunk.current then
+		f.timechunk.current = nil
+	end
+	if f.timechunk.total then
+		f.timechunk.total = nil
+	end
+end
+
 function f:CombatStatus()
 	--There are times where the player can be out of combat and the raid be still in combat.  It happens.
 	--So in those situation checking for ONLY if the player is in combat is not accurate.  So we are going

@@ -242,7 +242,7 @@ function display:UpdateViewStyle()
 		end
 		
 		--now lets sort
-		table.sort(display.bars, function(a,b) return a.vValue < b.vValue end)
+		table.sort(display.bars, function(a,b) return a.vValue > b.vValue end)
 		
 		--get the total max bars we can display in the current frame height
 		local maxBars = math.floor((display:GetHeight() - 32) / display.barSize)
@@ -256,6 +256,18 @@ function display:UpdateViewStyle()
 				display.bars[i]:Show()
 			else
 				display.bars[i]:Hide()
+			end
+		end
+	end
+end
+
+function display:ResetStyleView()
+	XanDPS:ResetAll()
+	if display.bars and #display.bars > 0 then
+		for i = #display.bars, 1, -1 do
+			if display.bars[i] then
+				display.bars[i]:Hide()
+				table.remove(display.bars, i)
 			end
 		end
 	end
