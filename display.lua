@@ -5,16 +5,17 @@ Author: Xruptor
 Email: private message (PM) me at wowinterface.com
 ------------------------------------------------------------------------------]]
 local L = XanDPS_L
-
-local display = CreateFrame("Frame", "XanDPS_Display", UIParent)
-display:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
-
+local viewChange = false
 local d_modes = {}
 local c_modes = {
 	["current"] = true,
 	["previous"] = true,
 	["total"] = true,
 }
+
+local display = CreateFrame("Frame", "XanDPS_Display", UIParent)
+display:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
+
 display.viewStyle = "default"
 display.cSession = "default"
 
@@ -172,15 +173,19 @@ function display:CreateBar(size, fontSize)
 	return bar
 end
 
-function display:SetViewStyle(style, session, barSize, fontSize)
+function display:SetViewStyle(style, session)
 	if not d_modes[style] then return end
 	if not c_modes[session] then return end
+	
+	local barSize = XanDPS_DB.barSize or 16
+	local fontSize = XanDPS_DB.fontSize or 12
 	display.viewStyle = style
 	display.cSession = session
 	display.barSize = barSize
 	display.fontSize = fontSize
 	display.header:SetText(L[style])
 	display:SetBackdropBorderColor(unpack(d_modes[style].bgcolor))
+	viewChange = true
 end
 
 function display:UpdateViewStyle()
@@ -190,6 +195,12 @@ function display:UpdateViewStyle()
 	if not XanDPS.timechunk[display.cSession] then return end
 	
 	local dChk = XanDPS.timechunk[display.cSession]
+	--do local update check, can't use viewChange as it may possibly be overwritten
+	local yUdt = false
+	if viewChange then
+		yUdt = true
+		viewChange = false
+	end
 
 	if dChk.units then
 		local totalC = 0
@@ -201,6 +212,13 @@ function display:UpdateViewStyle()
 				table.insert(display.bars, bar)
 			end
 			local bF = display.bars[totalC]
+			--fix display if changed
+			if yUdt then
+				bF:SetHeight(display.barSize)
+				bF.left:SetFont(STANDARD_TEXT_FONT, display.fontSize)
+				bF.right:SetFont(STANDARD_TEXT_FONT, display.fontSize)
+			end
+			--store values
 			bF.vName = v.name
 			bF.vClass = v.class
 			bF.vGID = v.gid
@@ -241,7 +259,6 @@ function display:UpdateViewStyle()
 			end
 		end
 	end
-	
 end
 
 -------------------
@@ -331,7 +348,7 @@ end
 function display:PLAYER_LOGIN()
 	display:CreateDisplay()
 	display:RestoreLayout(display:GetName())
-	display:SetViewStyle("Player DPS", "total", 16, 12)
+	display:SetViewStyle("Player DPS", "total")
 	
 	--initiate the display timer
 	display:SetScript("OnUpdate", OnUpdate)

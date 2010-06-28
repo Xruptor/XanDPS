@@ -33,6 +33,8 @@ function f:PLAYER_LOGIN()
 	if not XanDPS_DB then XanDPS_DB = {} end
 	if XanDPS_DB.bgShown == nil then XanDPS_DB.bgShown = 1 end
 	if XanDPS_DB.disabled == nil then XanDPS_DB.disabled = false end
+	if XanDPS_DB.fontSize == nil then XanDPS_DB.fontSize = 12 end
+	if XanDPS_DB.barSize == nil then XanDPS_DB.barSize = 16 end
 
 	f:RegisterEvent("PLAYER_ENTERING_WORLD")
 	f:RegisterEvent("PARTY_MEMBERS_CHANGED")
