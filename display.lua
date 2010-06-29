@@ -19,15 +19,19 @@ display:SetScript("OnEvent", function(self, event, ...) if self[event] then retu
 display.viewStyle = "default"
 display.cSession = "default"
 
-local function lenTable(t)
-	if type(t) ~= "table" then return nil end
-    local n=0 
-	for key in pairs(t) do
-		n = n + 1
-	end
-	return n
-end
-
+StaticPopupDialogs["XANDPS_RESET"] = {
+  text = "XanDPS: "..(L["Do you wish to reset the data?"] or ""),
+  button1 = L["Yes"],
+  button2 = L["No"],
+  sound = "INTERFACESOUND_CHARWINDOWOPEN",
+  OnAccept = function()
+	  display:ResetStyleView();
+  end,
+  timeout = 0,
+  whileDead = true,
+  hideOnEscape = true,
+}
+	
 function display:Register_Mode(module, name, func, bgcolor)
 	d_modes[name] = {["module"] = module, ["name"] = name, ["func"] = func, ["bgcolor"] = bgcolor}
 end
@@ -50,7 +54,7 @@ function display:CreateDisplay()
 		insets = {left = 0, right = 0, top = 20, bottom = 0},
 	})
 	
-	display:SetBackdropColor(0, 0, 0, 0.8)
+	display:SetBackdropColor(0, 0, 0, 0.5)
 	display:SetBackdropBorderColor(0.48, 0.48, 0.48)
 	
 	display:SetScript("OnMouseDown", function(self, button)
@@ -126,6 +130,28 @@ function display:CreateDisplay()
 	closeButton.closeTexture = closeTexture
 	display.closeButton = closeButton
 	
+	local resetButton = CreateFrame("Frame", nil, display)
+	resetButton:SetPoint("TOPLEFT", display, "TOPLEFT", 4, -15)
+	resetButton:SetHeight(14)
+	resetButton:SetWidth(14)
+	resetButton:SetFrameLevel(20)
+	resetButton:EnableMouse(true)
+
+	resetButton:SetScript("OnMouseUp", function(self, button)
+		if button == "LeftButton" then
+			StaticPopup_Show("XANDPS_RESET")
+		end
+	end)
+	
+	local resetTexture = resetButton:CreateTexture(nil, "OVERLAY")
+	resetTexture:SetTexture([[Interface\addons\XanDPS\media\reset.tga]])
+	resetTexture:SetBlendMode("ADD")
+	resetTexture:SetAlpha(0.6)
+	resetTexture:SetAllPoints(resetButton)
+
+	resetButton.resetTexture = resetTexture
+	display.resetButton = resetButton
+	
 	display.bars = {}
 end
 
@@ -195,6 +221,7 @@ function display:UpdateViewStyle()
 	if not XanDPS.timechunk[display.cSession] then return end
 	
 	local dChk = XanDPS.timechunk[display.cSession]
+	
 	--do local update check, can't use viewChange as it may possibly be overwritten
 	local yUdt = false
 	if viewChange then
@@ -218,12 +245,17 @@ function display:UpdateViewStyle()
 				bF.left:SetFont(STANDARD_TEXT_FONT, display.fontSize)
 				bF.right:SetFont(STANDARD_TEXT_FONT, display.fontSize)
 			end
-			--store values
-			bF.vName = v.name
+			--store values (strip the name if name-realm
+			if string.match(v.name, "^([^%-]+)%-(.+)$") then
+				--returns name, realm
+				bF.vName = string.match(v.name, "^([^%-]+)%-(.+)$")
+			else
+				bF.vName = v.name
+			end
 			bF.vClass = v.class
 			bF.vGID = v.gid
 			--lets use the correct display function from our module
-			bF.vValue = d_modes[display.viewStyle].func(dChk, v, v.gid)
+			bF.vValue = tonumber(d_modes[display.viewStyle].func(dChk, v, v.gid)) or 0
 			--now lets do class color
 			local color = RAID_CLASS_COLORS[v.class] or RAID_CLASS_COLORS["PRIEST"]
 			bF:SetStatusBarColor(color.r, color.g, color.b)
@@ -241,23 +273,26 @@ function display:UpdateViewStyle()
 			end
 		end
 		
-		--now lets sort
-		table.sort(display.bars, function(a,b) return a.vValue > b.vValue end)
-		
-		--get the total max bars we can display in the current frame height
-		local maxBars = math.floor((display:GetHeight() - 32) / display.barSize)
-		
-		--reposition and display according to max number of bars we can display
-		for i = 1, #display.bars do
-			if i < maxBars then
-				display.bars[i].left:SetText(i..". "..display.bars[i].vName)
-				display.bars[i].right:SetText(display.bars[i].vValue)
-				display.bars[i]:SetPoint("TOP", display, "TOP", 0, ((i - 1) * -display.barSize) - 32)
-				display.bars[i]:Show()
-			else
-				display.bars[i]:Hide()
+		if #display.bars > 0 then
+			--now lets sort
+			table.sort(display.bars, function(a,b) return a.vValue > b.vValue end)
+			
+			--get the total max bars we can display in the current frame height
+			local maxBars = math.floor((display:GetHeight() - 32) / display.barSize)
+			
+			--reposition and display according to max number of bars we can display
+			for i = 1, #display.bars do
+				if i < maxBars then
+					display.bars[i].left:SetText(i..". "..display.bars[i].vName)
+					display.bars[i].right:SetText(display.bars[i].vValue)
+					display.bars[i]:SetPoint("TOP", display, "TOP", 0, ((i - 1) * -display.barSize) - 32)
+					display.bars[i]:Show()
+				else
+					display.bars[i]:Hide()
+				end
 			end
 		end
+		
 	end
 end
 

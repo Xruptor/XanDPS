@@ -19,6 +19,9 @@ XanDPS_L = GetLocale() == "zhCN" and {
 	--["Total Healing"] = "Total Healing",
 	--["Total Overhealing"] = "Total Overhealing",
 	--["Total OHPS"] = "Total OHPS",
+	--["Do you wish to reset the data?"] = "Do you wish to reset the data?",
+	--["Yes"] = "Yes",
+	--["No"] = "No"]",
 } or GetLocale() == "ruRU" and {
 
 } or GetLocale() == "zhTW" and {

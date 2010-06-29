@@ -28,10 +28,10 @@ local function UnitDPS(chunk, units, uGUID)
 	--return DPS
 	if units then
 		--we want unit DPS
-		return string.format("%.1f", (units.damage or 0) / math.max(1, totaltime))
+		return ceil((units.damage or 0) / math.max(1, totaltime))
 	else
 		--we want chunk DPS
-		return string.format("%.1f", (chunk.damage or 0) / math.max(1, XanDPS:GetChunkTime(chunk)))
+		return ceil((chunk.damage or 0) / math.max(1, XanDPS:GetChunkTime(chunk)))
 	end
 end
 
