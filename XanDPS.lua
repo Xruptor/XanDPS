@@ -31,10 +31,16 @@ end
 function f:PLAYER_LOGIN()
 	--Database creation
 	if not XanDPS_DB then XanDPS_DB = {} end
-	if XanDPS_DB.bgShown == nil then XanDPS_DB.bgShown = 1 end
+	if XanDPS_DB.bgShown == nil then XanDPS_DB.bgShown = true end
 	if XanDPS_DB.disabled == nil then XanDPS_DB.disabled = false end
 	if XanDPS_DB.fontSize == nil then XanDPS_DB.fontSize = 12 end
 	if XanDPS_DB.barSize == nil then XanDPS_DB.barSize = 16 end
+	if XanDPS_DB.stripRealm == nil then XanDPS_DB.stripRealm = true end
+	if XanDPS_DB.viewStyle == nil then XanDPS_DB.viewStyle = "default" end
+	if XanDPS_DB.cSession == nil then XanDPS_DB.cSession = "default" end
+
+	--load up the display
+	XanDPS_Display:LoadUP()
 
 	f:RegisterEvent("PLAYER_ENTERING_WORLD")
 	f:RegisterEvent("PARTY_MEMBERS_CHANGED")

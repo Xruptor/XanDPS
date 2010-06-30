@@ -16,9 +16,6 @@ local c_modes = {
 local display = CreateFrame("Frame", "XanDPS_Display", UIParent)
 display:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
-display.viewStyle = "default"
-display.cSession = "default"
-
 StaticPopupDialogs["XANDPS_RESET"] = {
   text = "XanDPS: "..(L["Do you wish to reset the data?"] or ""),
   button1 = L["Yes"],
@@ -37,7 +34,6 @@ function display:Register_Mode(module, name, func, bgcolor)
 end
 
 function display:CreateDisplay()
-
 	display:SetPoint("CENTER")
 	display:SetWidth(200)
 	display:SetHeight(250)
@@ -156,7 +152,6 @@ function display:CreateDisplay()
 end
 
 function display:CreateBar(size, fontSize)
-
 	local texture = [[Interface\addons\XanDPS\media\minimalist.tga]]
 	local bar = CreateFrame("Statusbar", nil, self)
 	bar:SetPoint("LEFT", 1, 0)
@@ -199,16 +194,19 @@ function display:CreateBar(size, fontSize)
 	return bar
 end
 
-function display:SetViewStyle(style, session)
+function display:SetViewStyle(style, session, barSize, fontSize)
 	if not d_modes[style] then return end
 	if not c_modes[session] then return end
 	
-	local barSize = XanDPS_DB.barSize or 16
-	local fontSize = XanDPS_DB.fontSize or 12
+	XanDPS_DB.viewStyle = style
+	XanDPS_DB.cSession = session
+	XanDPS_DB.barSize = barSize or XanDPS_DB.barSize
+	XanDPS_DB.fontSize = fontSize or XanDPS_DB.fontSize
+
 	display.viewStyle = style
 	display.cSession = session
-	display.barSize = barSize
-	display.fontSize = fontSize
+	display.barSize = barSize or XanDPS_DB.barSize
+	display.fontSize = fontSize or XanDPS_DB.fontSize
 	display.header:SetText(L[style])
 	display:SetBackdropBorderColor(unpack(d_modes[style].bgcolor))
 	viewChange = true
@@ -246,7 +244,7 @@ function display:UpdateViewStyle()
 				bF.right:SetFont(STANDARD_TEXT_FONT, display.fontSize)
 			end
 			--store values (strip the name if name-realm
-			if string.match(v.name, "^([^%-]+)%-(.+)$") then
+			if string.match(v.name, "^([^%-]+)%-(.+)$") and XanDPS_DB.stripRealm then
 				--returns name, realm
 				bF.vName = string.match(v.name, "^([^%-]+)%-(.+)$")
 			else
@@ -392,16 +390,15 @@ local OnUpdate = function(self, elapsed)
 	end
 end
 
-function display:PLAYER_LOGIN()
+function display:LoadUP()
+	--create our display and then restore the layout from the DB
 	display:CreateDisplay()
 	display:RestoreLayout(display:GetName())
-	display:SetViewStyle("Player DPS", "total")
 	
+	--load saved settings and then setup the viewstyle
+	display:SetViewStyle(XanDPS_DB.viewStyle, XanDPS_DB.cSession, XanDPS_DB.barSize, XanDPS_DB.fontSize)
+
 	--initiate the display timer
 	display:SetScript("OnUpdate", OnUpdate)
-	
-	display:UnregisterEvent("PLAYER_LOGIN")
-	display.PLAYER_LOGIN = nil
 end
 
-if IsLoggedIn() then display:PLAYER_LOGIN() else display:RegisterEvent("PLAYER_LOGIN") end

@@ -14,7 +14,6 @@ local module_name = "XanDPS_Healing"
 
 local function UnitHPS(chunk, units, uGUID)
 	--this function returns the collected data and returns it as heals per second (effective heals)
-	
 	if uGUID and not units then
 		local tmpG = XanDPS:Unit_Fetch(chunk, uGUID)
 		if tmpG then
@@ -42,7 +41,6 @@ end
 
 local function UnitOverheal(chunk, units, uGUID)
 	--this function returns the collected data for overhealing
-	
 	if uGUID and not units then
 		local tmpG = XanDPS:Unit_Fetch(chunk, uGUID)
 		if tmpG then
@@ -68,7 +66,6 @@ end
 
 local function UnitOHPS(chunk, units, uGUID)
 	--this function returns the collected data for overhealing per second OHPS
-	
 	if uGUID and not units then
 		local tmpG = XanDPS:Unit_Fetch(chunk, uGUID)
 		if tmpG then
@@ -96,7 +93,6 @@ end
 
 local function UnitTotal(chunk, units, uGUID)
 	--this function returns the collected data for total heals
-	
 	if uGUID and not units then
 		local tmpG = XanDPS:Unit_Fetch(chunk, uGUID)
 		if tmpG then
@@ -171,7 +167,6 @@ local fd = CreateFrame("Frame", (module_name.."_Frame"), UIParent)
 fd:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
 function fd:PLAYER_LOGIN()
-
 	XanDPS:Register_CL(SpellHeal, 'SPELL_HEAL', {SRC_GOOD = true})
 	XanDPS:Register_CL(SpellHeal, 'SPELL_PERIODIC_HEAL', {SRC_GOOD = true})
 	

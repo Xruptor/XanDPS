@@ -41,7 +41,6 @@ end
 
 local function UnitTotal(chunk, units, uGUID)
 	--this function returns the collected data for total damage
-	
 	if uGUID and not units then
 		local tmpG = XanDPS:Unit_Fetch(chunk, uGUID)
 		if tmpG then
@@ -160,7 +159,6 @@ local fd = CreateFrame("Frame", (module_name.."_Frame"), UIParent)
 fd:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
 function fd:PLAYER_LOGIN()
-
 	XanDPS:Register_CL(SpellDamage, 'DAMAGE_SHIELD', {SRC_GOOD = true, DST_BAD = true})
 	XanDPS:Register_CL(SpellDamage, 'SPELL_DAMAGE', {SRC_GOOD = true, DST_BAD = true})
 	XanDPS:Register_CL(SpellDamage, 'SPELL_PERIODIC_DAMAGE', {SRC_GOOD = true, DST_BAD = true})
