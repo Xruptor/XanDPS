@@ -36,8 +36,8 @@ function f:PLAYER_LOGIN()
 	if XanDPS_DB.fontSize == nil then XanDPS_DB.fontSize = 12 end
 	if XanDPS_DB.barSize == nil then XanDPS_DB.barSize = 16 end
 	if XanDPS_DB.stripRealm == nil then XanDPS_DB.stripRealm = true end
-	if XanDPS_DB.viewStyle == nil then XanDPS_DB.viewStyle = "default" end
-	if XanDPS_DB.cSession == nil then XanDPS_DB.cSession = "default" end
+	if XanDPS_DB.viewStyle == nil then XanDPS_DB.viewStyle = "Player DPS" end
+	if XanDPS_DB.cSession == nil then XanDPS_DB.cSession = "total" end
 
 	--load up the display
 	XanDPS_Display:LoadUP()
@@ -84,11 +84,11 @@ function f:StartChunk()
 	if f.timechunk.current then return nil end
 
 	--otherwise create a new active chunk
-	f.timechunk.current = {units = {}, starttime = time(), ntime = 0}
+	f.timechunk.current = {units = {}, starttime = time(), ntime = 0, isCurrent = true}
 
 	--Initiate total if empty
 	if f.timechunk.total == nil then
-		f.timechunk.total = {units = {}, starttime = time(), ntime = 0}
+		f.timechunk.total = {units = {}, starttime = time(), ntime = 0, isTotal = true}
 	end
 	
 	--initiate the timer
@@ -99,16 +99,17 @@ function f:EndChunk()
 	--save the previous chunk, in case the user wants to see the data for the last fight
 	f.timechunk.current.endtime = time()
 	f.timechunk.current.ntime = f.timechunk.current.endtime - f.timechunk.current.starttime
+
 	f:Unit_UpdateTimeActive(f.timechunk.current) --update the time data for units in current chunk
 	f.timechunk.previous = f.timechunk.current --save it as previous chunk
 
 	--add current chunk to total chunk time
 	f.timechunk.total.ntime = f.timechunk.total.ntime + f.timechunk.current.ntime
-	
+
 	--update unit data and reset the last time update
 	f:Unit_UpdateTimeActive(f.timechunk.total)
 	f:Unit_TimeReset(f.timechunk.total)
-	
+
 	--Reset our timer and current chunk
 	f.timechunk.current = nil
 	f:SetScript("OnUpdate", nil) --cancel the tick timer
@@ -140,7 +141,7 @@ function f:Unit_Check(chunk, gid, pName)
 		chunk.units[gid].nfirst = time()
 	end
 	chunk.units[gid].nlast = time() --this updates the last time the player had preformed an action (each Unit_Check use)
-
+	
 	return chunk.units[gid]
 end
 
@@ -372,6 +373,33 @@ function f:GetChunkTime(chunk)
 	else
 		return (time() - chunk.starttime)
 	end
+end
+
+function f:GetChunkTimeActive(chunk)
+	if not chunk then return 0 end
+	
+	local totaltime = 0
+	local uptTime = 0
+	
+	if chunk.ntime and not chunk.isCurrent then
+		if chunk.ntime > 0 then
+			totaltime = chunk.ntime
+		end
+		if not chunk.isTotal then
+			--it's previous
+			return totaltime
+		end
+		--it's total (we need to subtract current)
+		if f.timechunk.current then
+			uptTime = time() - f.timechunk.current.starttime
+		end
+		return totaltime + uptTime
+	else
+		--it's current
+		return time() - chunk.starttime
+	end
+	
+	return totaltime
 end
 
 function f:ResetAll()

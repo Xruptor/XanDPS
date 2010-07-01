@@ -31,7 +31,7 @@ local function UnitHPS(chunk, units, uGUID)
 		return ceil((units.healing or 0) / math.max(1, totaltime))
 	else
 		--we want chunk HPS
-		return ceil((chunk.healing or 0) / math.max(1, XanDPS:GetChunkTime(chunk)))
+		return ceil((chunk.healing or 0) / math.max(1, XanDPS:GetChunkTimeActive(chunk)))
 	end
 end
 
@@ -83,7 +83,7 @@ local function UnitOHPS(chunk, units, uGUID)
 		return ceil((units.overhealing or 0) / math.max(1, totaltime))
 	else
 		--we want chunk overhealing
-		return ceil((chunk.overhealing or 0) / math.max(1, XanDPS:GetChunkTime(chunk)))
+		return ceil((chunk.overhealing or 0) / math.max(1, XanDPS:GetChunkTimeActive(chunk)))
 	end
 end
 
@@ -170,15 +170,15 @@ function fd:PLAYER_LOGIN()
 	XanDPS:Register_CL(SpellHeal, 'SPELL_HEAL', {SRC_GOOD = true})
 	XanDPS:Register_CL(SpellHeal, 'SPELL_PERIODIC_HEAL', {SRC_GOOD = true})
 	
-	XanDPS_Display:Register_Mode(module_name, "Player HPS", UnitHPS, { 0, 0.58, 0 })
-	XanDPS_Display:Register_Mode(module_name, "Player Healing", UnitTotal, { 0, 0.58, 0 })
-	XanDPS_Display:Register_Mode(module_name, "Player Overhealing", UnitOverheal, { 0.008, 0.65, 0.41 })
-	XanDPS_Display:Register_Mode(module_name, "Player OHPS", UnitOHPS, { 0.008, 0.65, 0.41 })
+	XanDPS_Display:Register_Mode(module_name, "Player HPS", UnitHPS, { 0, 148/255, 0 }, true)
+	XanDPS_Display:Register_Mode(module_name, "Player Healing", UnitTotal, { 0, 148/255, 0 }, true)
+	XanDPS_Display:Register_Mode(module_name, "Player Overhealing", UnitOverheal, { 2/255, 165/255, 104/255 }, true)
+	XanDPS_Display:Register_Mode(module_name, "Player OHPS", UnitOHPS, { 2/255, 165/255, 104/255 }, true)
 	
-	XanDPS_Display:Register_Mode(module_name, "Total HPS", ChunkHPS, { 0, 0.47, 0 })
-	XanDPS_Display:Register_Mode(module_name, "Total Healing", ChunkTotal, { 0, 0.47, 0 })
-	XanDPS_Display:Register_Mode(module_name, "Total Overhealing", ChunkOverheal, { 0.008, 0.57, 0.36 })
-	XanDPS_Display:Register_Mode(module_name, "Total OHPS", ChunkOHPS, { 0.008, 0.57, 0.36 })
+	XanDPS_Display:Register_Mode(module_name, "Total HPS", ChunkHPS, { 115/255, 124/255, 161/255 }, false)
+	XanDPS_Display:Register_Mode(module_name, "Total Healing", ChunkTotal, { 115/255, 124/255, 161/255 }, false)
+	XanDPS_Display:Register_Mode(module_name, "Total Overhealing", ChunkOverheal, { 115/255, 124/255, 161/255 }, false)
+	XanDPS_Display:Register_Mode(module_name, "Total OHPS", ChunkOHPS, { 115/255, 124/255, 161/255 }, false)
 	
 	fd:UnregisterEvent("PLAYER_LOGIN")
 	fd = nil

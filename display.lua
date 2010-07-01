@@ -29,8 +29,8 @@ StaticPopupDialogs["XANDPS_RESET"] = {
   hideOnEscape = true,
 }
 
-function display:Register_Mode(module, name, func, bgcolor)
-	d_modes[name] = {["module"] = module, ["name"] = name, ["func"] = func, ["bgcolor"] = bgcolor}
+function display:Register_Mode(module, name, func, bgcolor, showAll)
+	d_modes[name] = {["module"] = module, ["name"] = name, ["func"] = func, ["bgcolor"] = bgcolor, ["showAll"] = showAll}
 	--update the dropdown menu list
 	display:setupDropDown()
 end
@@ -267,21 +267,37 @@ function display:UpdateViewStyle()
 				bF.left:SetFont(STANDARD_TEXT_FONT, display.fontSize)
 				bF.right:SetFont(STANDARD_TEXT_FONT, display.fontSize)
 			end
-			--store values (strip the name if name-realm
-			if string.match(v.name, "^([^%-]+)%-(.+)$") and XanDPS_DB.stripRealm then
-				--returns name, realm
-				bF.vName = string.match(v.name, "^([^%-]+)%-(.+)$")
+			--show all players or display only one bar with the data
+			if d_modes[display.viewStyle].showAll then
+				--store values (strip the name if name-realm
+				if string.match(v.name, "^([^%-]+)%-(.+)$") and XanDPS_DB.stripRealm then
+					--returns name, realm
+					bF.vName = string.match(v.name, "^([^%-]+)%-(.+)$")
+				else
+					bF.vName = v.name
+				end
+				bF.vClass = v.class
 			else
-				bF.vName = v.name
+				if UnitInRaid("player") then
+					bF.vName = L["Raid"]
+				elseif GetNumPartyMembers() > 0 then
+					bF.vName = L["Party"]
+				else
+					bF.vName = L["Player"]
+				end
+				bF.vClass = "raidpartyplayer"
 			end
-			bF.vClass = v.class
 			bF.vGID = v.gid
 			--lets use the correct display function from our module
 			bF.vValue = tonumber(d_modes[display.viewStyle].func(dChk, v, v.gid)) or 0
 			--now lets do class color
-			local color = RAID_CLASS_COLORS[v.class] or RAID_CLASS_COLORS["PRIEST"]
+			local color = RAID_CLASS_COLORS[bF.vClass] or {r=0.305,g=0.57,b=0.345} --forest green
 			bF:SetStatusBarColor(color.r, color.g, color.b)
 			bF.bg:SetVertexColor(color.r, color.g, color.b, 0.1)
+			--exit loop if we are displaying only one item
+			if not d_modes[display.viewStyle].showAll then
+				break
+			end
 		end
 		
 		--remove unused bars

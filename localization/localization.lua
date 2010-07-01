@@ -28,6 +28,9 @@ XanDPS_L = GetLocale() == "zhCN" and {
 	--["Total"] = "Total"]",
 	--["Data Type"] = "Data Type"]",
 	--["Close"] = "Close"]",
+	--["Raid"] = "Raid"]",
+	--["Party"] = "Party"]",
+	--["Player"] = "Player"]",
 } or GetLocale() == "ruRU" and {
 
 } or GetLocale() == "zhTW" and {

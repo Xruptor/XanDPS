@@ -31,7 +31,7 @@ local function UnitDPS(chunk, units, uGUID)
 		return ceil((units.damage or 0) / math.max(1, totaltime))
 	else
 		--we want chunk DPS
-		return ceil((chunk.damage or 0) / math.max(1, XanDPS:GetChunkTime(chunk)))
+		return ceil((chunk.damage or 0) / math.max(1, XanDPS:GetChunkTimeActive(chunk)))
 	end
 end
 
@@ -173,10 +173,10 @@ function fd:PLAYER_LOGIN()
 	XanDPS:Register_CL(SpellMissed, 'RANGE_MISSED', {SRC_GOOD = true, DST_BAD = true})
 	XanDPS:Register_CL(SpellMissed, 'SPELL_BUILDING_MISSED', {SRC_GOOD = true, DST_BAD = true})
 	
-	XanDPS_Display:Register_Mode(module_name, "Player DPS", UnitDPS, { 0.84, 0.15, 0.15 })
-	XanDPS_Display:Register_Mode(module_name, "Player Damage", UnitTotal, { 0.84, 0.15, 0.15 })
-	XanDPS_Display:Register_Mode(module_name, "Total DPS", ChunkDPS, { 0.81, 0.06, 0.06 })
-	XanDPS_Display:Register_Mode(module_name, "Total Damage", ChunkTotal, { 0.81, 0.06, 0.06 })
+	XanDPS_Display:Register_Mode(module_name, "Player DPS", UnitDPS, { 214/255, 38/255, 38/255 }, true)
+	XanDPS_Display:Register_Mode(module_name, "Player Damage", UnitTotal, { 214/255, 38/255, 38/255 }, true)
+	XanDPS_Display:Register_Mode(module_name, "Total DPS", ChunkDPS, { 115/255, 124/255, 161/255 }, false)
+	XanDPS_Display:Register_Mode(module_name, "Total Damage", ChunkTotal, { 115/255, 124/255, 161/255 }, false)
 	
 	fd:UnregisterEvent("PLAYER_LOGIN")
 	fd = nil
