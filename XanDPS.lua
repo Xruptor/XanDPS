@@ -102,6 +102,7 @@ function f:EndChunk()
 
 	f:Unit_UpdateTimeActive(f.timechunk.current) --update the time data for units in current chunk
 	f.timechunk.previous = f.timechunk.current --save it as previous chunk
+	f.timechunk.previous.isCurrent = false --turn off isCurrent flag for previous
 
 	--add current chunk to total chunk time
 	f.timechunk.total.ntime = f.timechunk.total.ntime + f.timechunk.current.ntime
@@ -381,22 +382,25 @@ function f:GetChunkTimeActive(chunk)
 	local totaltime = 0
 	local uptTime = 0
 	
-	if chunk.ntime and not chunk.isCurrent then
+	if chunk.isTotal and chunk.ntime then
+		--it's total
 		if chunk.ntime > 0 then
 			totaltime = chunk.ntime
 		end
-		if not chunk.isTotal then
-			--it's previous
-			return totaltime
-		end
-		--it's total (we need to subtract current)
+		--we need to subtract current
 		if f.timechunk.current then
 			uptTime = time() - f.timechunk.current.starttime
 		end
 		return totaltime + uptTime
-	else
+		
+	elseif chunk.isCurrent then
 		--it's current
 		return time() - chunk.starttime
+		
+	elseif chunk.ntime then
+		--it's previous (or some chunk that has time)
+		return chunk.ntime
+		
 	end
 	
 	return totaltime

@@ -240,7 +240,10 @@ function display:UpdateViewStyle()
 	if not d_modes[display.viewStyle] then return end
 	if not c_modes[display.cSession] then return end
 	if not XanDPS.timechunk then return end
-	if not XanDPS.timechunk[display.cSession] then return end
+	if not XanDPS.timechunk[display.cSession] then
+		display:ClearBars()
+		return
+	end
 	
 	local dChk = XanDPS.timechunk[display.cSession]
 	
@@ -334,11 +337,7 @@ function display:UpdateViewStyle()
 	end
 end
 
-function display:ResetStyleView()
-	if display.DD and display.DD:IsShown() then
-		CloseDropDownMenus()
-	end
-	XanDPS:ResetAll()
+function display:ClearBars()
 	if display.bars and #display.bars > 0 then
 		for i = #display.bars, 1, -1 do
 			if display.bars[i] then
@@ -347,6 +346,14 @@ function display:ResetStyleView()
 			end
 		end
 	end
+end
+
+function display:ResetStyleView()
+	if display.DD and display.DD:IsShown() then
+		CloseDropDownMenus()
+	end
+	XanDPS:ResetAll()
+	display:ClearBars()
 end
 
 -------------------
@@ -400,6 +407,7 @@ function display:setupDropDown()
 						checked = function() return self.cSession == "previous" end,
 						func = function(drop)
 							self:SetViewStyle(self.viewStyle, "previous")
+							CloseDropDownMenus()
 						end,
 					}, {
 						text = L["Current"],
@@ -407,6 +415,7 @@ function display:setupDropDown()
 						checked = function() return self.cSession == "current" end,
 						func = function(drop)
 							self:SetViewStyle(self.viewStyle, "current")
+							CloseDropDownMenus()
 						end,
 					}, {
 						text = L["Total"],
@@ -414,6 +423,7 @@ function display:setupDropDown()
 						checked = function() return self.cSession == "total" end,
 						func = function(drop)
 							self:SetViewStyle(self.viewStyle, "total")
+							CloseDropDownMenus()
 						end,
 					},
 				},
