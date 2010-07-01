@@ -353,6 +353,7 @@ function display:setupDropDown()
 				owner = DD,
 				arg1 = v.name,
 				arg2 = v.module,
+				checked = function() return self.viewStyle == v.name end,
 				func = function(drop, arg1, arg2)
 					self:SetViewStyle(arg1, self.cSession or "total")
 					CloseDropDownMenus()
@@ -380,20 +381,23 @@ function display:setupDropDown()
 					{
 						text = L["Previous"],
 						owner = DD,
-						keepShownOnClick = true,
-						func = function()
+						checked = function() return self.cSession == "previous" end,
+						func = function(drop)
+							self:SetViewStyle(self.viewStyle, "previous")
 						end,
 					}, {
 						text = L["Current"],
 						owner = DD,
-						keepShownOnClick = true,
-						func = function()
+						checked = function() return self.cSession == "current" end,
+						func = function(drop)
+							self:SetViewStyle(self.viewStyle, "current")
 						end,
 					}, {
 						text = L["Total"],
 						owner = DD,
-						keepShownOnClick = true,
-						func = function()
+						checked = function() return self.cSession == "total" end,
+						func = function(drop)
+							self:SetViewStyle(self.viewStyle, "total")
 						end,
 					},
 				},
