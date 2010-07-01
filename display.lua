@@ -28,9 +28,11 @@ StaticPopupDialogs["XANDPS_RESET"] = {
   whileDead = true,
   hideOnEscape = true,
 }
-	
+
 function display:Register_Mode(module, name, func, bgcolor)
 	d_modes[name] = {["module"] = module, ["name"] = name, ["func"] = func, ["bgcolor"] = bgcolor}
+	--update the dropdown menu list
+	display:setupDropDown()
 end
 
 function display:CreateDisplay()
@@ -57,7 +59,7 @@ function display:CreateDisplay()
 		if button == "LeftButton" then
 			self:StartMoving()
 		elseif button == "RightButton" then
-			--ToggleDropDownMenu(1, nil, display.dropDown, "cursor")
+			--ToggleDropDownMenu(1, nil, display.DD, "cursor")
 		end
 	end)
 
@@ -147,6 +149,28 @@ function display:CreateDisplay()
 
 	resetButton.resetTexture = resetTexture
 	display.resetButton = resetButton
+	
+	local settingsButton = CreateFrame("Frame", nil, display)
+	settingsButton:SetPoint("TOPLEFT", display, "TOPLEFT", 22, -15.5)
+	settingsButton:SetHeight(14)
+	settingsButton:SetWidth(14)
+	settingsButton:SetFrameLevel(20)
+	settingsButton:EnableMouse(true)
+
+	settingsButton:SetScript("OnMouseUp", function(self, button)
+		if button == "LeftButton" then
+			ToggleDropDownMenu(1, nil, display.DD, "cursor", 0, 0)
+		end
+	end)
+	
+	local settingsTexture = settingsButton:CreateTexture(nil, "OVERLAY")
+	settingsTexture:SetTexture([[Interface\addons\XanDPS\media\settings.tga]])
+	settingsTexture:SetBlendMode("ADD")
+	settingsTexture:SetAlpha(0.6)
+	settingsTexture:SetAllPoints(settingsButton)
+
+	settingsButton.settingsTexture = settingsTexture
+	display.settingsButton = settingsButton
 	
 	display.bars = {}
 end
@@ -295,6 +319,9 @@ function display:UpdateViewStyle()
 end
 
 function display:ResetStyleView()
+	if display.DD and display.DD:IsShown() then
+		CloseDropDownMenus()
+	end
 	XanDPS:ResetAll()
 	if display.bars and #display.bars > 0 then
 		for i = #display.bars, 1, -1 do
@@ -304,6 +331,96 @@ function display:ResetStyleView()
 			end
 		end
 	end
+end
+
+-------------------
+--DROPDOWN FUNCTIONS
+-------------------
+
+function display:setupDropDown()
+	--close the dropdown menu if shown
+	if display.DD and display.DD:IsShown() then
+		CloseDropDownMenus()
+	end
+	
+	local DD = CreateFrame("Frame", "XanDPS_DropDown", UIParent, "UIDropDownMenuTemplate")
+	
+	local tmpD = {}
+
+	for k, v in pairs(d_modes) do
+		table.insert(tmpD, {
+				text = L[v.name],
+				owner = DD,
+				arg1 = v.name,
+				arg2 = v.module,
+				func = function(drop, arg1, arg2)
+					self:SetViewStyle(arg1, self.cSession or "total")
+					CloseDropDownMenus()
+				end,
+			}
+		)
+	end
+	
+	--sort it by name
+	table.sort(tmpD, function(a,b) return a.text < b.text end)
+	
+	display.menuTable = {
+		{
+			{
+				text = "XanDPS",
+				owner = DD,
+				isTitle = true,
+				notCheckable = true,
+			}, {
+				text = L["Combat Session"],
+				owner = DD,
+				hasArrow = true,
+				notCheckable = true,
+				menuList = {
+					{
+						text = L["Previous"],
+						owner = DD,
+						keepShownOnClick = true,
+						func = function()
+						end,
+					}, {
+						text = L["Current"],
+						owner = DD,
+						keepShownOnClick = true,
+						func = function()
+						end,
+					}, {
+						text = L["Total"],
+						owner = DD,
+						keepShownOnClick = true,
+						func = function()
+						end,
+					},
+				},
+			}, {
+				text = L["Data Type"],
+				owner = dd,
+				hasArrow = true,
+				notCheckable = true,
+				menuList = tmpD,
+			}, {
+				text = L["Close"],
+				owner = DD,
+				func = function() CloseDropDownMenus() end,
+				notCheckable = true,
+			}
+		},
+	}
+
+	UIDropDownMenu_Initialize(DD, function(frame, level, list)
+		if not (list or self.menuTable[level]) then return end
+		for k, v in ipairs(list or self.menuTable[level]) do
+			v.value = k
+			UIDropDownMenu_AddButton(v, level)
+		end
+	end, "MENU", 1)
+	
+	display.DD = DD
 end
 
 -------------------
@@ -394,10 +511,10 @@ function display:LoadUP()
 	--create our display and then restore the layout from the DB
 	display:CreateDisplay()
 	display:RestoreLayout(display:GetName())
-	
+	--load the initial dropdown
+	display:setupDropDown()
 	--load saved settings and then setup the viewstyle
 	display:SetViewStyle(XanDPS_DB.viewStyle, XanDPS_DB.cSession, XanDPS_DB.barSize, XanDPS_DB.fontSize)
-
 	--initiate the display timer
 	display:SetScript("OnUpdate", OnUpdate)
 end

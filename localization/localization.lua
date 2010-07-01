@@ -22,6 +22,12 @@ XanDPS_L = GetLocale() == "zhCN" and {
 	--["Do you wish to reset the data?"] = "Do you wish to reset the data?",
 	--["Yes"] = "Yes",
 	--["No"] = "No"]",
+	--["Combat Session"] = "Combat Session"]",
+	--["Previous"] = "Previous"]",
+	--["Current"] = "Current"]",
+	--["Total"] = "Total"]",
+	--["Data Type"] = "Data Type"]",
+	--["Close"] = "Close"]",
 } or GetLocale() == "ruRU" and {
 
 } or GetLocale() == "zhTW" and {
