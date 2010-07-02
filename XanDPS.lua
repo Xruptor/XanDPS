@@ -28,17 +28,28 @@ end
 -----EVENTS
 --------------------------------------------
 
+local defaults = {
+		["bgShown"] = true,
+		["disabled"] = false,
+		["fontSize"] = 12,
+		["barSize"] = 16,
+		["stripRealm"] = true,
+		["viewStyle"] = "Player DPS",
+		["cSession"] = "total",
+		["hideInArenaBG"] = false,
+		["disableInArenaBG"] = false,
+}
+
 function f:PLAYER_LOGIN()
+
 	--Database creation
 	if not XanDPS_DB then XanDPS_DB = {} end
-	if XanDPS_DB.bgShown == nil then XanDPS_DB.bgShown = true end
-	if XanDPS_DB.disabled == nil then XanDPS_DB.disabled = false end
-	if XanDPS_DB.fontSize == nil then XanDPS_DB.fontSize = 12 end
-	if XanDPS_DB.barSize == nil then XanDPS_DB.barSize = 16 end
-	if XanDPS_DB.stripRealm == nil then XanDPS_DB.stripRealm = true end
-	if XanDPS_DB.viewStyle == nil then XanDPS_DB.viewStyle = "Player DPS" end
-	if XanDPS_DB.cSession == nil then XanDPS_DB.cSession = "total" end
-
+	for k, v in pairs(defaults) do
+		if XanDPS_DB[k] == nil then
+			XanDPS_DB[k] = v
+		end
+	end
+	
 	--load up the display
 	XanDPS_Display:LoadUP()
 
@@ -47,6 +58,7 @@ function f:PLAYER_LOGIN()
 	f:RegisterEvent("RAID_ROSTER_UPDATE")
 	f:RegisterEvent("UNIT_PET")
 	f:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+	f:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 
 	local ver = GetAddOnMetadata("XanDPS","Version") or '1.0'
 	DEFAULT_CHAT_FRAME:AddMessage(string.format(L["|cFF99CC33%s|r [v|cFFDF2B2B%s|r] Loaded"], "XanDPS", ver or "1.0"))
@@ -258,6 +270,7 @@ end
 ----- NOTE: Special thanks to (zarnivoop) for Skada
 --------------------------------------------
 
+--NOTE: GROUP_FLAGS is used to only parse events only if they are in a raid/party/or player(mine)
 local PET_FLAGS = COMBATLOG_OBJECT_TYPE_PET + COMBATLOG_OBJECT_TYPE_GUARDIAN
 local GROUP_FLAGS = COMBATLOG_OBJECT_AFFILIATION_MINE + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_RAID
 
@@ -269,8 +282,10 @@ function f:Register_CL(func, event, flags)
 end
 
 function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
-	if XanDPS_DB and XanDPS_DB.disabled then return end
-	--NOTE: GROUP_FLAGS is used to only parse events only if they are in a raid/party/or player(mine)
+	if XanDPS_DB.disabled then return end
+	
+	local inInstance, instanceType  = IsInInstance()
+    if ( instanceType == "pvp" or instanceType == "arena" ) and XanDPS_DB.disableInArenaBG then return end
 	
 	local SRC_GOOD = nil
 	local DST_GOOD = nil
@@ -432,9 +447,54 @@ function f:CombatStatus()
 	--the reason I put the player one last, is in the event were dead but the raid/party is still fighting
 	--if this was put on the top then all combat events would stop being tracked the moment the player died
 	if UnitAffectingCombat("player") then return true end
-	
+
 	return false
 end
 
-if IsLoggedIn() then f:PLAYER_LOGIN() else f:RegisterEvent("PLAYER_LOGIN") end
+local isInsideInstance = false
+local instanceNameStr = "none"
+local playerGhost = false
+local lastInstanceType = "none"
 
+function f:ZONE_CHANGED_NEW_AREA()
+    local inInstance, instanceType  = IsInInstance()
+	
+	if ( not instanceType == "pvp" and not instanceType == "arena" ) then
+		--if not a battleground or arena, do zone checks
+		if ( inInstance and isInsideInstance ~= inInstance ) then
+			-- Zoned into an instance
+			if instanceNameStr ~= GetRealZoneText() then
+				instanceNameStr = GetRealZoneText()
+				if XanDPS_Display then XanDPS_Display:ResetStyleView() end
+			elseif (playerGhost and instanceNameStr == GetRealZoneText() ) then
+				--the player had died and entered the same instance, lets reset switch
+				playerGhost = false
+			elseif (not playerGhost and instanceNameStr == GetRealZoneText()) then
+				--we zoned into a new instance of the same zone name
+				--or we walked in and out of the same instance, either way
+				--ASK if we want to reset, don't just do it
+				StaticPopup_Show("XANDPS_RESET")
+			end
+		elseif ( inInstance and instanceNameStr ~= GetRealZoneText() ) then
+			--we went from one instance to another, ASK for a reset
+			instanceNameStr = GetRealZoneText()
+			StaticPopup_Show("XANDPS_RESET")
+		end
+	end
+
+    if ( instanceType == "pvp" or instanceType == "arena" ) then
+		--we entered a pvp battleground or arena, check if we should show the display
+		if XanDPS_Display then
+			if XanDPS_DB.hideInArenaBG and XanDPS_Display:IsVisible() then
+				XanDPS_Display:Hide()
+			end
+			XanDPS_Display:ResetStyleView()
+		end
+    end
+
+    isInsideInstance = inInstance
+	lastInstanceType = instanceType
+	playerGhost = UnitIsGhost("player")
+end
+
+if IsLoggedIn() then f:PLAYER_LOGIN() else f:RegisterEvent("PLAYER_LOGIN") end

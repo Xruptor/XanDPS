@@ -58,8 +58,6 @@ function display:CreateDisplay()
 	display:SetScript("OnMouseDown", function(self, button)
 		if button == "LeftButton" then
 			self:StartMoving()
-		elseif button == "RightButton" then
-			--ToggleDropDownMenu(1, nil, display.DD, "cursor")
 		end
 	end)
 
@@ -256,6 +254,7 @@ function display:UpdateViewStyle()
 
 	if dChk.units then
 		local totalC = 0
+		
 		for k, v in pairs(dChk.units) do
 			totalC = totalC + 1
 			if not display.bars[totalC] then
@@ -297,8 +296,9 @@ function display:UpdateViewStyle()
 			local color = RAID_CLASS_COLORS[bF.vClass] or {r=0.305,g=0.57,b=0.345} --forest green
 			bF:SetStatusBarColor(color.r, color.g, color.b)
 			bF.bg:SetVertexColor(color.r, color.g, color.b, 0.1)
-			--exit loop if we are displaying only one item
+			
 			if not d_modes[display.viewStyle].showAll then
+				--exit loop if we are displaying only one item
 				break
 			end
 		end
@@ -548,4 +548,3 @@ function display:LoadUP()
 	--initiate the display timer
 	display:SetScript("OnUpdate", OnUpdate)
 end
-
