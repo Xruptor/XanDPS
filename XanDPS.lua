@@ -38,6 +38,7 @@ local defaults = {
 		["cSession"] = "total",
 		["hideInArenaBG"] = false,
 		["disableInArenaBG"] = false,
+		["bgOpacity"] = 0.5,
 }
 
 function f:PLAYER_LOGIN()
@@ -61,7 +62,7 @@ function f:PLAYER_LOGIN()
 	f:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 
 	local ver = GetAddOnMetadata("XanDPS","Version") or '1.0'
-	DEFAULT_CHAT_FRAME:AddMessage(string.format(L["|cFF99CC33%s|r [v|cFFDF2B2B%s|r] Loaded"], "XanDPS", ver or "1.0"))
+	DEFAULT_CHAT_FRAME:AddMessage(string.format(L["|cFF99CC33%s|r [v|cFFDF2B2B%s|r] Loaded:   /xandps"], "XanDPS", ver or "1.0"))
 	
 	f:UnregisterEvent("PLAYER_LOGIN")
 	f.PLAYER_LOGIN = nil

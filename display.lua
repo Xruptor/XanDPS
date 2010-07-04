@@ -29,6 +29,15 @@ StaticPopupDialogs["XANDPS_RESET"] = {
   hideOnEscape = true,
 }
 
+SLASH_XANDPS1 = "/xandps";
+SlashCmdList["XANDPS"] = function()
+	if display:IsVisible() then
+		display:Hide()
+	else
+		display:Show()
+	end
+end
+
 function display:Register_Mode(module, name, func, bgcolor, showAll)
 	d_modes[name] = {["module"] = module, ["name"] = name, ["func"] = func, ["bgcolor"] = bgcolor, ["showAll"] = showAll}
 	--update the dropdown menu list
@@ -52,7 +61,7 @@ function display:CreateDisplay()
 		insets = {left = 0, right = 0, top = 20, bottom = 0},
 	})
 	
-	display:SetBackdropColor(0, 0, 0, 0.5)
+	display:SetBackdropColor(0, 0, 0, XanDPS_DB.bgOpacity or 0.5)
 	display:SetBackdropBorderColor(0.48, 0.48, 0.48)
 	
 	display:SetScript("OnMouseDown", function(self, button)
@@ -429,7 +438,7 @@ function display:setupDropDown()
 				},
 			}, {
 				text = L["Data Type"],
-				owner = dd,
+				owner = DD,
 				hasArrow = true,
 				notCheckable = true,
 				menuList = tmpD,
@@ -548,3 +557,4 @@ function display:LoadUP()
 	--initiate the display timer
 	display:SetScript("OnUpdate", OnUpdate)
 end
+

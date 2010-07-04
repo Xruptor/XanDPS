@@ -31,6 +31,7 @@ XanDPS_L = GetLocale() == "zhCN" and {
 	--["Raid"] = "Raid"]",
 	--["Party"] = "Party"]",
 	--["Player"] = "Player"]",
+	--["Background Opacity"] = "Background Opacity"]",
 } or GetLocale() == "ruRU" and {
 
 } or GetLocale() == "zhTW" and {
