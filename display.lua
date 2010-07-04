@@ -378,6 +378,7 @@ function display:setupDropDown()
 	local DD = CreateFrame("Frame", "XanDPS_DropDown", UIParent, "UIDropDownMenuTemplate")
 	
 	local tmpD = {}
+	local tmpA = {}
 
 	for k, v in pairs(d_modes) do
 		table.insert(tmpD, {
@@ -388,7 +389,6 @@ function display:setupDropDown()
 				checked = function() return self.viewStyle == v.name end,
 				func = function(drop, arg1, arg2)
 					self:SetViewStyle(arg1, self.cSession or "total")
-					CloseDropDownMenus()
 				end,
 			}
 		)
@@ -397,6 +397,20 @@ function display:setupDropDown()
 	--sort it by name
 	table.sort(tmpD, function(a,b) return a.text < b.text end)
 	
+	for i = 0, 1, 0.1 do
+		table.insert(tmpA, {
+				text = format("%.1f", i),
+				owner = DD,
+				arg1 = i,
+				checked = function() return XanDPS_DB.bgOpacity == i end,
+				func = function(drop, arg1)
+					XanDPS_DB.bgOpacity = arg1
+					XanDPS_Display:SetBackdropColor(0, 0, 0, arg1 or 0.5)
+				end,
+			}
+		)
+	end
+
 	display.menuTable = {
 		{
 			{
@@ -416,7 +430,6 @@ function display:setupDropDown()
 						checked = function() return self.cSession == "previous" end,
 						func = function(drop)
 							self:SetViewStyle(self.viewStyle, "previous")
-							CloseDropDownMenus()
 						end,
 					}, {
 						text = L["Current"],
@@ -424,7 +437,6 @@ function display:setupDropDown()
 						checked = function() return self.cSession == "current" end,
 						func = function(drop)
 							self:SetViewStyle(self.viewStyle, "current")
-							CloseDropDownMenus()
 						end,
 					}, {
 						text = L["Total"],
@@ -432,7 +444,6 @@ function display:setupDropDown()
 						checked = function() return self.cSession == "total" end,
 						func = function(drop)
 							self:SetViewStyle(self.viewStyle, "total")
-							CloseDropDownMenus()
 						end,
 					},
 				},
@@ -442,6 +453,12 @@ function display:setupDropDown()
 				hasArrow = true,
 				notCheckable = true,
 				menuList = tmpD,
+			}, {
+				text = L["Background Opacity"],
+				owner = DD,
+				hasArrow = true,
+				notCheckable = true,
+				menuList = tmpA,
 			}, {
 				text = L["Close"],
 				owner = DD,
