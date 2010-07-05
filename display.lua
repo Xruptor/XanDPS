@@ -225,21 +225,22 @@ function display:CreateBar(size, fontSize)
 	return bar
 end
 
-function display:SetViewStyle(style, session, barSize, fontSize)
+function display:SetViewStyle(style, session, barHeight, fontSize)
 	if not d_modes[style] then return end
 	if not c_modes[session] then return end
 	
 	XanDPS_DB.viewStyle = style
 	XanDPS_DB.cSession = session
-	XanDPS_DB.barSize = barSize or XanDPS_DB.barSize
+	XanDPS_DB.barHeight = barHeight or XanDPS_DB.barHeight
 	XanDPS_DB.fontSize = fontSize or XanDPS_DB.fontSize
 
 	display.viewStyle = style
 	display.cSession = session
-	display.barSize = barSize or XanDPS_DB.barSize
+	display.barHeight = barHeight or XanDPS_DB.barHeight
 	display.fontSize = fontSize or XanDPS_DB.fontSize
 	display.header:SetText(L[style])
 	display:SetBackdropBorderColor(unpack(d_modes[style].bgcolor))
+	display:SetBackdropColor(0, 0, 0, XanDPS_DB.bgOpacity or 0.5)
 	viewChange = true
 end
 
@@ -268,13 +269,13 @@ function display:UpdateViewStyle()
 			totalC = totalC + 1
 			if not display.bars[totalC] then
 				--we don't have a bar to work with so lets create one
-				local bar = display:CreateBar(display.barSize, display.fontSize)
+				local bar = display:CreateBar(display.barHeight, display.fontSize)
 				table.insert(display.bars, bar)
 			end
 			local bF = display.bars[totalC]
 			--fix display if changed
 			if yUdt then
-				bF:SetHeight(display.barSize)
+				bF:SetHeight(display.barHeight)
 				bF.left:SetFont(STANDARD_TEXT_FONT, display.fontSize)
 				bF.right:SetFont(STANDARD_TEXT_FONT, display.fontSize)
 			end
@@ -328,14 +329,14 @@ function display:UpdateViewStyle()
 			table.sort(display.bars, function(a,b) return a.vValue > b.vValue end)
 			
 			--get the total max bars we can display in the current frame height
-			local maxBars = math.floor((display:GetHeight() - 32) / display.barSize)
+			local maxBars = math.floor((display:GetHeight() - 32) / display.barHeight)
 			
 			--reposition and display according to max number of bars we can display
 			for i = 1, #display.bars do
 				if i < maxBars then
 					display.bars[i].left:SetText(i..". "..display.bars[i].vName)
 					display.bars[i].right:SetText(display.bars[i].vValue)
-					display.bars[i]:SetPoint("TOP", display, "TOP", 0, ((i - 1) * -display.barSize) - 32)
+					display.bars[i]:SetPoint("TOP", display, "TOP", 0, ((i - 1) * -display.barHeight) - 32)
 					display.bars[i]:Show()
 				else
 					display.bars[i]:Hide()
@@ -369,114 +370,94 @@ end
 --DROPDOWN FUNCTIONS
 -------------------
 
+local function pairsByKeys(t, f)
+	local a = {}
+		for n in pairs(t) do table.insert(a, n) end
+		table.sort(a, f)
+		local i = 0      -- iterator variable
+		local iter = function ()   -- iterator function
+			i = i + 1
+			if a[i] == nil then return nil
+			else return a[i], t[a[i]]
+			end
+		end
+	return iter
+end
+
 function display:setupDropDown()
 	--close the dropdown menu if shown
 	if display.DD and display.DD:IsShown() then
 		CloseDropDownMenus()
 	end
-	
-	local DD = CreateFrame("Frame", "XanDPS_DropDown", UIParent, "UIDropDownMenuTemplate")
-	
-	local tmpD = {}
-	local tmpA = {}
 
-	for k, v in pairs(d_modes) do
-		table.insert(tmpD, {
-				text = L[v.name],
-				owner = DD,
-				arg1 = v.name,
-				arg2 = v.module,
-				checked = function() return self.viewStyle == v.name end,
-				func = function(drop, arg1, arg2)
-					self:SetViewStyle(arg1, self.cSession or "total")
-				end,
-			}
-		)
-	end
-	
-	--sort it by name
-	table.sort(tmpD, function(a,b) return a.text < b.text end)
-	
-	for i = 0, 1, 0.1 do
-		table.insert(tmpA, {
-				text = format("%.1f", i),
-				owner = DD,
-				arg1 = i,
-				checked = function() return XanDPS_DB.bgOpacity == i end,
-				func = function(drop, arg1)
-					XanDPS_DB.bgOpacity = arg1
-					XanDPS_Display:SetBackdropColor(0, 0, 0, arg1 or 0.5)
-				end,
-			}
-		)
-	end
-
-	display.menuTable = {
-		{
-			{
-				text = "XanDPS",
-				owner = DD,
-				isTitle = true,
-				notCheckable = true,
-			}, {
-				text = L["Combat Session"],
-				owner = DD,
-				hasArrow = true,
-				notCheckable = true,
-				menuList = {
-					{
-						text = L["Previous"],
-						owner = DD,
-						checked = function() return self.cSession == "previous" end,
-						func = function(drop)
-							self:SetViewStyle(self.viewStyle, "previous")
-						end,
-					}, {
-						text = L["Current"],
-						owner = DD,
-						checked = function() return self.cSession == "current" end,
-						func = function(drop)
-							self:SetViewStyle(self.viewStyle, "current")
-						end,
-					}, {
-						text = L["Total"],
-						owner = DD,
-						checked = function() return self.cSession == "total" end,
-						func = function(drop)
-							self:SetViewStyle(self.viewStyle, "total")
-						end,
-					},
-				},
-			}, {
-				text = L["Data Type"],
-				owner = DD,
-				hasArrow = true,
-				notCheckable = true,
-				menuList = tmpD,
-			}, {
-				text = L["Background Opacity"],
-				owner = DD,
-				hasArrow = true,
-				notCheckable = true,
-				menuList = tmpA,
-			}, {
-				text = L["Close"],
-				owner = DD,
-				func = function() CloseDropDownMenus() end,
-				notCheckable = true,
-			}
-		},
-	}
-
-	UIDropDownMenu_Initialize(DD, function(frame, level, list)
-		if not (list or self.menuTable[level]) then return end
-		for k, v in ipairs(list or self.menuTable[level]) do
-			v.value = k
-			UIDropDownMenu_AddButton(v, level)
+	local dd1 = LibStub('LibXMenu-1.0'):New("XanDPS_DropDown", XanDPS_DB)
+	dd1.initialize = function(self, lvl)
+		if lvl == 1 then
+			self:AddTitle(lvl, "XanDPS")
+			self:AddList(lvl, L["Combat Session"], "combatsession")
+			self:AddList(lvl, L["Data Set"], "dataset")
+			self:AddList(lvl, L["Background Opacity"], "bgOpacity")
+			self:AddList(lvl, L["Font Size"], "fontSize")
+			self:AddList(lvl, L["Bar Height"], "barHeight")
+			self:AddCloseButton(lvl,  L["Close"])
+		elseif lvl and lvl > 1 then
+			local sub = UIDROPDOWNMENU_MENU_VALUE
+			if sub == "combatsession" then
+				self:AddSelect(lvl, L["Previous"], "previous", "cSession")
+				self:AddSelect(lvl, L["Current"], "current", "cSession")
+				self:AddSelect(lvl, L["Total"], "total", "cSession")
+			elseif sub == "dataset" then
+				local multiTypes = 0
+				local mdCount = 1
+				--we can't have more then UIDROPDOWNMENU_MAXBUTTONS so we will split it into subcategories
+				for k, v in pairsByKeys(d_modes) do
+					if (multiTypes + 1) > UIDROPDOWNMENU_MAXBUTTONS then
+						multiTypes = 0
+						mdCount = mdCount + 1
+					end
+					multiTypes = multiTypes + 1
+					if multiTypes == 1 then
+						self:AddList(lvl, L["Group"].." "..mdCount, "datagroup"..mdCount)
+					end
+				end
+			elseif strmatch(sub, "(.-%w)(%d+)") == "datagroup" then
+				local multiTypes = 0
+				local mdCount = 1
+				local _, cCount = strmatch(sub, "(.-%w)(%d+)")
+				--we can't have more then UIDROPDOWNMENU_MAXBUTTONS so we will split it into subcategories
+				for k, v in pairsByKeys(d_modes) do
+					if (multiTypes + 1) > UIDROPDOWNMENU_MAXBUTTONS then
+						multiTypes = 0
+						mdCount = mdCount + 1
+					end
+					if mdCount == tonumber(cCount) then
+						--same group so lets add an item
+						self:AddSelect(lvl, L[v.name], v.name, "viewStyle")
+					elseif mdCount > tonumber(cCount) then
+						break
+					end
+					multiTypes = multiTypes + 1
+				end
+			elseif sub == "bgOpacity" then
+				for i = 0, 1, 0.1 do
+					self:AddSelect(lvl, i, i, "bgOpacity")
+				end
+			elseif sub == "fontSize" then
+				for i = 5, 18, 1 do
+					self:AddSelect(lvl, i, i, "fontSize")
+				end
+			elseif sub == "barHeight" then
+				for i = 10, 30, 2 do
+					self:AddSelect(lvl, i, i, "barHeight")
+				end
+			end
 		end
-	end, "MENU", 1)
+	end
+	dd1.doUpdate = function()
+		self:SetViewStyle(XanDPS_DB.viewStyle, XanDPS_DB.cSession, XanDPS_DB.barHeight, XanDPS_DB.fontSize)
+	end
 	
-	display.DD = DD
+	display.DD = dd1
 end
 
 -------------------
@@ -570,8 +551,7 @@ function display:LoadUP()
 	--load the initial dropdown
 	display:setupDropDown()
 	--load saved settings and then setup the viewstyle
-	display:SetViewStyle(XanDPS_DB.viewStyle, XanDPS_DB.cSession, XanDPS_DB.barSize, XanDPS_DB.fontSize)
+	display:SetViewStyle(XanDPS_DB.viewStyle, XanDPS_DB.cSession, XanDPS_DB.barHeight, XanDPS_DB.fontSize)
 	--initiate the display timer
 	display:SetScript("OnUpdate", OnUpdate)
 end
-

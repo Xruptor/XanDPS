@@ -5,6 +5,9 @@
 ## Version: 2.0
 ## SavedVariablesPerCharacter: XanDPS_DB
 
+libs\LibStub.lua
+libs\LibXMenu-1.0.lua
+
 localization\localization.lua
 
 modules\damage.lua
