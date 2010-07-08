@@ -8,6 +8,7 @@ Email: private message (PM) me at wowinterface.com
 local L = XanDPS_L
 local viewChange = false
 local d_modes = {}
+local x_modules = {}
 local c_modes = {
 	["current"] = true,
 	["previous"] = true,
@@ -41,6 +42,7 @@ end
 
 function display:Register_Mode(module, name, func, bgcolor, showAll)
 	d_modes[name] = {["module"] = module, ["name"] = name, ["func"] = func, ["bgcolor"] = bgcolor, ["showAll"] = showAll}
+	x_modules[module] = true
 	--update the dropdown menu list
 	display:setupDropDown()
 end
@@ -406,36 +408,17 @@ function display:setupDropDown()
 				self:AddSelect(lvl, L["Current"], "current", "cSession")
 				self:AddSelect(lvl, L["Total"], "total", "cSession")
 			elseif sub == "dataset" then
-				local multiTypes = 0
-				local mdCount = 1
-				--we can't have more then UIDROPDOWNMENU_MAXBUTTONS so we will split it into subcategories
-				for k, v in pairsByKeys(d_modes) do
-					if (multiTypes + 1) > UIDROPDOWNMENU_MAXBUTTONS then
-						multiTypes = 0
-						mdCount = mdCount + 1
-					end
-					multiTypes = multiTypes + 1
-					if multiTypes == 1 then
-						self:AddList(lvl, L["Group"].." "..mdCount, "datagroup"..mdCount)
-					end
+				for k, v in pairsByKeys(x_modules) do
+					self:AddList(lvl, L[k], "module-"..k)
 				end
-			elseif strmatch(sub, "(.-%w)(%d+)") == "datagroup" then
-				local multiTypes = 0
-				local mdCount = 1
-				local _, cCount = strmatch(sub, "(.-%w)(%d+)")
-				--we can't have more then UIDROPDOWNMENU_MAXBUTTONS so we will split it into subcategories
-				for k, v in pairsByKeys(d_modes) do
-					if (multiTypes + 1) > UIDROPDOWNMENU_MAXBUTTONS then
-						multiTypes = 0
-						mdCount = mdCount + 1
+			elseif strmatch(sub, "(.-%w)-(%w+)") == "module" then
+				local _, modName = strmatch(sub, "(.-%w)-(%w+)")
+				if modName then
+					for k, v in pairsByKeys(d_modes) do
+						if v.module == modName then
+							self:AddSelect(lvl, L[v.name], v.name, "viewStyle")
+						end
 					end
-					if mdCount == tonumber(cCount) then
-						--same group so lets add an item
-						self:AddSelect(lvl, L[v.name], v.name, "viewStyle")
-					elseif mdCount > tonumber(cCount) then
-						break
-					end
-					multiTypes = multiTypes + 1
 				end
 			elseif sub == "settings" then
 				self:AddList(lvl, L["Background Opacity"], "bgOpacity")

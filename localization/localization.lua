@@ -40,6 +40,8 @@ XanDPS_L = GetLocale() == "zhCN" and {
 	--["Disable in Arena/Battleground"] = "Disable in Arena/Battleground",
 	--["Disable XanDPS"] = "Disable XanDPS",
 	--["Strip realm from character name"] = "Strip realm from character name",
+	--["Damage"] = "Damage",
+	--["Healing"] = "Healing",
 } or GetLocale() == "ruRU" and {
 
 } or GetLocale() == "zhTW" and {
