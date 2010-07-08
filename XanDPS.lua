@@ -133,6 +133,10 @@ function f:PLAYER_ENTERING_WORLD()
 		bgDisabled = false
     end
 
+	if XanDPS_DB.disabled and XanDPS_Display and XanDPS_Display:IsVisible() then
+		XanDPS_Display:Hide()
+	end
+
     isInsideInstance = inInstance
 	lastInstanceType = instanceType
 	playerGhost = UnitIsGhost("player")

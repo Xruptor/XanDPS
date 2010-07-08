@@ -444,7 +444,7 @@ function display:setupDropDown()
 		end
 	end
 	dd1.doUpdate = function(bOpt)
-		if bOpt and (bOpt == 2 or bOpt == 3) then
+		if bOpt and (bOpt >= 2) then
 			XanDPS:PLAYER_ENTERING_WORLD()
 		else
 			self:SetViewStyle(XanDPS_DB.viewStyle, XanDPS_DB.cSession, XanDPS_DB.barHeight, XanDPS_DB.fontSize)
