@@ -25,15 +25,18 @@
 					end
 				elseif sub == "advancelist" then
 					--several different ways of adding selects
-					self:AddSelect(lvl, i, i, db, "dboption1", nil)
-					self:AddSelect(lvl, i, i, "dboption2", nil)
-					self:AddSelect(lvl, i, i, nil, nil)
+					self:AddSelect(lvl, "This button 1", "button1", db, "dboption1", nil, 1)
+					self:AddSelect(lvl, "This button 2", "button2", "dboption2", nil, nil, 2)
+					self:AddSelect(lvl, "This button 3", "button3", nil, nil, nil, 3)
 				end
 			end
 		end
-		dd1.doUpdate = function()
+		dd1.doUpdate = function(bOpt)
 			--fired after every menu selection click
 			doDisplayUpdates();
+			if bOpt == 1 then
+				--do something, bOpt is optional tag attached to a button
+			end
 		end
 		
 		ToggleDropDownMenu(1, nil, dd1, "cursor")
@@ -79,9 +82,10 @@ end
 	arg1				- custom database variable, if arg2 is nil then value is used as element.  Example:  arg1[value]
 	arg2				- custom database element for arg1.  Example:  arg1[arg2]
 	func				- define custom function for menu item
+	bOpt				- define an optional variable to be passed to doUpdate. Example: button name or button ID.
 --]]
 
-local function AddToggle(self, lvl, text, value, arg1, arg2, func)
+local function AddToggle(self, lvl, text, value, arg1, arg2, func, bOpt)
 	if not lvl then return end
 	if not text then return end
 	if not value then return end
@@ -89,6 +93,7 @@ local function AddToggle(self, lvl, text, value, arg1, arg2, func)
 	value = tonumber(value) or value
 	self.info.arg1 = arg1
 	self.info.arg2 = arg2
+	self.info.value = value
 	self.info.func = func or function(item, arg1, arg2)
 		if arg1 and arg2 then
 			arg1[arg2] = not arg1[arg2]
@@ -97,7 +102,7 @@ local function AddToggle(self, lvl, text, value, arg1, arg2, func)
 		else
 			item.owner.db[item.value] = not item.owner.db[item.value]
 		end
-		if item.owner.doUpdate then item.owner.doUpdate() end
+		if item.owner.doUpdate then item.owner.doUpdate(bOpt) end
 	end
 	if arg1 and arg2 then
 		self.info.checked = arg1[arg2]
@@ -106,7 +111,7 @@ local function AddToggle(self, lvl, text, value, arg1, arg2, func)
 	else
 		self.info.checked = self.db[value]
 	end
-	self.AddButton(self, lvl, text, 1)
+	AddButton(self, lvl, text, 1)
 end
 
 --[[
@@ -124,7 +129,7 @@ local function AddList(self, lvl, text, value)
 	self.info.value = value
 	self.info.hasArrow = true
 	self.info.func = HideCheck
-	self.AddButton(self, lvl, text, 1)
+	AddButton(self, lvl, text, 1)
 end
 
 --[[
@@ -140,9 +145,10 @@ end
 	arg2				- 	custom database variable, if arg1 then acts as an element in arg1 table. Example: arg1[arg2]
 							if not arg1 then arg2 is used as custom database table with value as element.  Example: arg2[value]
 	func				- define custom function for menu item
+	bOpt				- define an optional variable to be passed to doUpdate. Example: button name or button ID.
 --]]
 
-local function AddSelect(self, lvl, text, value, arg1, arg2, func)
+local function AddSelect(self, lvl, text, value, arg1, arg2, func, bOpt)
 	if not lvl then return end
 	if not text then return end
 	if not value then return end
@@ -174,7 +180,7 @@ local function AddSelect(self, lvl, text, value, arg1, arg2, func)
 				end
 			end
 		end
-		if item.owner.doUpdate then item.owner.doUpdate() end
+		if item.owner.doUpdate then item.owner.doUpdate(bOpt) end
 	end
 	if arg1 and arg2 then
 		self.info.checked = arg1[arg2] == value
@@ -185,18 +191,19 @@ local function AddSelect(self, lvl, text, value, arg1, arg2, func)
 	else
 		self.info.checked = self.db[value] == value
 	end
-	self.AddButton(self, lvl, text, 1)
+	AddButton(self, lvl, text, 1)
 end
 
 --[[
-	lib:AddButton
+	lib:AddColor
 		(NOTE:)	A color table must be first established before using this function
 	lvl					- menu level 1,2,3 etc...
 	text				- name of the menu item
 	value				- database element value or name. Example: db[value]
+	bOpt				- define an optional variable to be passed to doUpdate. Example: button name or button ID.
 --]]
 
-local function AddColor(self, lvl, text, value)
+local function AddColor(self, lvl, text, value, bOpt)
 	if not lvl then return end
 	if not text then return end
 	if not value then return end
@@ -215,7 +222,7 @@ local function AddColor(self, lvl, text, value)
 			a = 1 - OpacitySliderFrame:GetValue()
 		end
 		colDB.r, colDB.g, colDB.b, colDB.a = r, g, b, a
-		if _G[self:GetName()].doUpdate then _G[self:GetName()].doUpdate() end
+		if _G[self:GetName()].doUpdate then _G[self:GetName()].doUpdate(bOpt) end
 	end
 	self.info.hasColorSwatch = true
 	self.info.hasOpacity = 1
@@ -223,7 +230,7 @@ local function AddColor(self, lvl, text, value)
 	self.info.swatchFunc, self.info.opacityFunc, self.info.cancelFunc = SetColor, SetColor, SetColor
 	self.info.value = value
 	self.info.func = UIDropDownMenuButton_OpenColorPicker
-	self.AddButton(self, lvl, text, nil)
+	AddButton(self, lvl, text, nil)
 end
 
 --[[
@@ -236,7 +243,7 @@ local function AddTitle(self, lvl, text)
 	if not lvl then return end
 	if not text then return end
 	self.info.isTitle = true
-	self.AddButton(self, lvl, text)
+	AddButton(self, lvl, text)
 end
 
 --[[
@@ -249,7 +256,7 @@ local function AddCloseButton(self, lvl, text)
 	if not lvl then return end
 	if not text then return end
 	self.info.func = function() CloseDropDownMenus() end
-	self.AddButton(self, lvl, text)
+	AddButton(self, lvl, text)
 end
 
 --[[

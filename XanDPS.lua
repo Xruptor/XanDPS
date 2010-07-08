@@ -9,6 +9,11 @@ local L = XanDPS_L
 local unitpets = {}
 local CL_events = {}
 local band = bit.band
+local isInsideInstance = false
+local instanceNameStr = "none"
+local playerGhost = false
+local lastInstanceType = "none"
+local bgDisabled = false
 
 local f = CreateFrame("Frame", "XanDPS", UIParent)
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
@@ -59,18 +64,12 @@ function f:PLAYER_LOGIN()
 	f:RegisterEvent("RAID_ROSTER_UPDATE")
 	f:RegisterEvent("UNIT_PET")
 	f:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-	f:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 
 	local ver = GetAddOnMetadata("XanDPS","Version") or '1.0'
 	DEFAULT_CHAT_FRAME:AddMessage(string.format(L["|cFF99CC33%s|r [v|cFFDF2B2B%s|r] Loaded:   /xandps"], "XanDPS", ver or "1.0"))
 	
 	f:UnregisterEvent("PLAYER_LOGIN")
 	f.PLAYER_LOGIN = nil
-end
-
-function f:PLAYER_ENTERING_WORLD()
-	--Pet Check
-	f:Pet_Parse()
 end
 
 function f:PARTY_MEMBERS_CHANGED()
@@ -86,6 +85,57 @@ end
 function f:UNIT_PET()
 	--Pet Check
 	f:Pet_Parse()
+end
+
+function f:PLAYER_ENTERING_WORLD()
+	--Pet Check
+	f:Pet_Parse()
+
+    local inInstance, instanceType  = IsInInstance()
+
+	if ( instanceType ~= "pvp" and instanceType ~= "arena" ) then
+		--if not a battleground or arena, do zone checks
+		if ( inInstance and isInsideInstance ~= inInstance ) then
+			-- Zoned into an instance
+			if instanceNameStr ~= GetRealZoneText() then
+				instanceNameStr = GetRealZoneText()
+				if XanDPS_Display then XanDPS_Display:ResetStyleView() end
+			elseif (playerGhost and instanceNameStr == GetRealZoneText() ) then
+				--the player had died and entered the same instance, lets reset switch
+				playerGhost = false
+			elseif (not playerGhost and instanceNameStr == GetRealZoneText()) then
+				--we zoned into a new instance of the same zone name
+				--or we walked in and out of the same instance, either way
+				--ASK if we want to reset, don't just do it
+				StaticPopup_Show("XANDPS_RESET")
+			end
+		elseif ( inInstance and instanceNameStr ~= GetRealZoneText() ) then
+			--we went from one instance to another, ASK for a reset
+			instanceNameStr = GetRealZoneText()
+			StaticPopup_Show("XANDPS_RESET")
+		end
+		bgDisabled = false
+		
+	elseif ( instanceType == "pvp" or instanceType == "arena" ) then
+		--we entered a pvp battleground or arena, check if we should show the display
+		if XanDPS_Display then
+			XanDPS_Display:ResetStyleView()
+			if XanDPS_DB.hideInArenaBG and XanDPS_Display:IsVisible() then
+				XanDPS_Display:Hide()
+			end
+		end
+		if XanDPS_DB.disableInArenaBG then
+			bgDisabled = true
+		end
+		
+	else
+		--just in case ;)
+		bgDisabled = false
+    end
+
+    isInsideInstance = inInstance
+	lastInstanceType = instanceType
+	playerGhost = UnitIsGhost("player")
 end
 
 --------------------------------------------
@@ -257,7 +307,7 @@ function f:Pet_Reallocate(cl_action)
 				cl_action.unitGUID = UnitGUID("player")
 			end
 		end
-		--find pet and attach real owner
+		--find pet and attach real owner if not guardian
 		local uGUID, uName = f:Pet_Fetch(cl_action.unitGUID)
 		if uGUID and uName then
 			cl_action.unitGUID = uGUID
@@ -284,9 +334,7 @@ end
 
 function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 	if XanDPS_DB.disabled then return end
-	
-	local inInstance, instanceType  = IsInInstance()
-    if ( instanceType == "pvp" or instanceType == "arena" ) and XanDPS_DB.disableInArenaBG then return end
+	if bgDisabled then return end
 	
 	local SRC_GOOD = nil
 	local DST_GOOD = nil
@@ -450,52 +498,6 @@ function f:CombatStatus()
 	if UnitAffectingCombat("player") then return true end
 
 	return false
-end
-
-local isInsideInstance = false
-local instanceNameStr = "none"
-local playerGhost = false
-local lastInstanceType = "none"
-
-function f:ZONE_CHANGED_NEW_AREA()
-    local inInstance, instanceType  = IsInInstance()
-	
-	if ( not instanceType == "pvp" and not instanceType == "arena" ) then
-		--if not a battleground or arena, do zone checks
-		if ( inInstance and isInsideInstance ~= inInstance ) then
-			-- Zoned into an instance
-			if instanceNameStr ~= GetRealZoneText() then
-				instanceNameStr = GetRealZoneText()
-				if XanDPS_Display then XanDPS_Display:ResetStyleView() end
-			elseif (playerGhost and instanceNameStr == GetRealZoneText() ) then
-				--the player had died and entered the same instance, lets reset switch
-				playerGhost = false
-			elseif (not playerGhost and instanceNameStr == GetRealZoneText()) then
-				--we zoned into a new instance of the same zone name
-				--or we walked in and out of the same instance, either way
-				--ASK if we want to reset, don't just do it
-				StaticPopup_Show("XANDPS_RESET")
-			end
-		elseif ( inInstance and instanceNameStr ~= GetRealZoneText() ) then
-			--we went from one instance to another, ASK for a reset
-			instanceNameStr = GetRealZoneText()
-			StaticPopup_Show("XANDPS_RESET")
-		end
-	end
-
-    if ( instanceType == "pvp" or instanceType == "arena" ) then
-		--we entered a pvp battleground or arena, check if we should show the display
-		if XanDPS_Display then
-			if XanDPS_DB.hideInArenaBG and XanDPS_Display:IsVisible() then
-				XanDPS_Display:Hide()
-			end
-			XanDPS_Display:ResetStyleView()
-		end
-    end
-
-    isInsideInstance = inInstance
-	lastInstanceType = instanceType
-	playerGhost = UnitIsGhost("player")
 end
 
 if IsLoggedIn() then f:PLAYER_LOGIN() else f:RegisterEvent("PLAYER_LOGIN") end

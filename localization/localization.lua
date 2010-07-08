@@ -35,6 +35,11 @@ XanDPS_L = GetLocale() == "zhCN" and {
 	--["Font Size"] = "Font Size",
 	--["Bar Height"] = "Bar Height",
 	--["Group"] = "Group",
+	--["Settings"] = "Settings",
+	--["Hide display in Arena/Battleground"] = "Hide display in Arena/Battleground",
+	--["Disable in Arena/Battleground"] = "Disable in Arena/Battleground",
+	--["Disable XanDPS"] = "Disable XanDPS",
+	--["Strip realm from character name"] = "Strip realm from character name",
 } or GetLocale() == "ruRU" and {
 
 } or GetLocale() == "zhTW" and {

@@ -4,6 +4,7 @@ Description: The display module for XanDPS
 Author: Xruptor
 Email: private message (PM) me at wowinterface.com
 ------------------------------------------------------------------------------]]
+
 local L = XanDPS_L
 local viewChange = false
 local d_modes = {}
@@ -396,9 +397,7 @@ function display:setupDropDown()
 			self:AddTitle(lvl, "XanDPS")
 			self:AddList(lvl, L["Combat Session"], "combatsession")
 			self:AddList(lvl, L["Data Set"], "dataset")
-			self:AddList(lvl, L["Background Opacity"], "bgOpacity")
-			self:AddList(lvl, L["Font Size"], "fontSize")
-			self:AddList(lvl, L["Bar Height"], "barHeight")
+			self:AddList(lvl, L["Settings"], "settings")
 			self:AddCloseButton(lvl,  L["Close"])
 		elseif lvl and lvl > 1 then
 			local sub = UIDROPDOWNMENU_MENU_VALUE
@@ -438,6 +437,14 @@ function display:setupDropDown()
 					end
 					multiTypes = multiTypes + 1
 				end
+			elseif sub == "settings" then
+				self:AddList(lvl, L["Background Opacity"], "bgOpacity")
+				self:AddList(lvl, L["Font Size"], "fontSize")
+				self:AddList(lvl, L["Bar Height"], "barHeight")
+				self:AddToggle(lvl, L["Strip realm from character name"], "stripRealm", nil, nil, nil, 1)
+				self:AddToggle(lvl, L["Hide display in Arena/Battleground"], "hideInArenaBG", nil, nil, nil, 2)
+				self:AddToggle(lvl, L["Disable in Arena/Battleground"], "disableInArenaBG", nil, nil, nil, 3)
+				self:AddToggle(lvl, L["Disable XanDPS"], "disabled", nil, nil, nil, 4)
 			elseif sub == "bgOpacity" then
 				for i = 0, 1, 0.1 do
 					self:AddSelect(lvl, i, i, "bgOpacity")
@@ -453,8 +460,12 @@ function display:setupDropDown()
 			end
 		end
 	end
-	dd1.doUpdate = function()
-		self:SetViewStyle(XanDPS_DB.viewStyle, XanDPS_DB.cSession, XanDPS_DB.barHeight, XanDPS_DB.fontSize)
+	dd1.doUpdate = function(bOpt)
+		if bOpt and (bOpt == 2 or bOpt == 3) then
+			XanDPS:PLAYER_ENTERING_WORLD()
+		else
+			self:SetViewStyle(XanDPS_DB.viewStyle, XanDPS_DB.cSession, XanDPS_DB.barHeight, XanDPS_DB.fontSize)
+		end
 	end
 	
 	display.DD = dd1

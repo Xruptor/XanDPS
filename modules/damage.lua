@@ -173,8 +173,8 @@ function fd:PLAYER_LOGIN()
 	XanDPS:Register_CL(SpellMissed, 'RANGE_MISSED', {SRC_GOOD = true, DST_BAD = true})
 	XanDPS:Register_CL(SpellMissed, 'SPELL_BUILDING_MISSED', {SRC_GOOD = true, DST_BAD = true})
 	
-	XanDPS_Display:Register_Mode(module_name, "Player DPS", UnitDPS, { 214/255, 38/255, 38/255 }, true)
-	XanDPS_Display:Register_Mode(module_name, "Player Damage", UnitTotal, { 214/255, 38/255, 38/255 }, true)
+	XanDPS_Display:Register_Mode(module_name, "Player DPS", UnitDPS, { 255/255, 51/255, 51/255 }, true)
+	XanDPS_Display:Register_Mode(module_name, "Player Damage", UnitTotal, { 255/255, 51/255, 51/255 }, true)
 	XanDPS_Display:Register_Mode(module_name, "Total DPS", ChunkDPS, { 115/255, 124/255, 161/255 }, false)
 	XanDPS_Display:Register_Mode(module_name, "Total Damage", ChunkTotal, { 115/255, 124/255, 161/255 }, false)
 	
