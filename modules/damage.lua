@@ -177,8 +177,8 @@ function fd:PLAYER_LOGIN()
 	
 	XanDPS_Display:Register_Mode("Damage", "Player DPS", UnitDPS, { 255/255, 51/255, 51/255 }, true)
 	XanDPS_Display:Register_Mode("Damage", "Player Damage", UnitTotal, { 255/255, 51/255, 51/255 }, true)
-	XanDPS_Display:Register_Mode("Damage", "Total DPS", ChunkDPS, { 115/255, 124/255, 161/255 }, false)
-	XanDPS_Display:Register_Mode("Damage", "Total Damage", ChunkTotal, { 115/255, 124/255, 161/255 }, false)
+	XanDPS_Display:Register_Mode("Damage", "Total Combat DPS", ChunkDPS, { 115/255, 124/255, 161/255 }, false)
+	XanDPS_Display:Register_Mode("Damage", "Total Combat Damage", ChunkTotal, { 115/255, 124/255, 161/255 }, false)
 	
 	fd:UnregisterEvent("PLAYER_LOGIN")
 	fd = nil

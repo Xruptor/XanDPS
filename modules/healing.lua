@@ -175,10 +175,10 @@ function fd:PLAYER_LOGIN()
 	XanDPS_Display:Register_Mode("Healing", "Player Overhealing", UnitOverheal, { 2/255, 165/255, 104/255 }, true)
 	XanDPS_Display:Register_Mode("Healing", "Player OHPS", UnitOHPS, { 2/255, 165/255, 104/255 }, true)
 	
-	XanDPS_Display:Register_Mode("Healing", "Total HPS", ChunkHPS, { 115/255, 124/255, 161/255 }, false)
-	XanDPS_Display:Register_Mode("Healing", "Total Healing", ChunkTotal, { 115/255, 124/255, 161/255 }, false)
-	XanDPS_Display:Register_Mode("Healing", "Total Overhealing", ChunkOverheal, { 115/255, 124/255, 161/255 }, false)
-	XanDPS_Display:Register_Mode("Healing", "Total OHPS", ChunkOHPS, { 115/255, 124/255, 161/255 }, false)
+	XanDPS_Display:Register_Mode("Healing", "Total Combat HPS", ChunkHPS, { 115/255, 124/255, 161/255 }, false)
+	XanDPS_Display:Register_Mode("Healing", "Total Combat Healing", ChunkTotal, { 115/255, 124/255, 161/255 }, false)
+	XanDPS_Display:Register_Mode("Healing", "Total Combat Overhealing", ChunkOverheal, { 115/255, 124/255, 161/255 }, false)
+	XanDPS_Display:Register_Mode("Healing", "Total Combat OHPS", ChunkOHPS, { 115/255, 124/255, 161/255 }, false)
 	
 	fd:UnregisterEvent("PLAYER_LOGIN")
 	fd = nil

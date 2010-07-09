@@ -171,14 +171,14 @@ function f:EndChunk()
 	--save the previous chunk, in case the user wants to see the data for the last fight
 	f.timechunk.current.endtime = time()
 	f.timechunk.current.ntime = f.timechunk.current.endtime - f.timechunk.current.starttime
-print("Current: " ..f.timechunk.current.ntime)
 	f:Unit_UpdateTimeActive(f.timechunk.current) --update the time data for units in current chunk
+	
+	--setup previous chunk
 	f.timechunk.previous = f.timechunk.current --save it as previous chunk
 	f.timechunk.previous.isCurrent = false --turn off isCurrent flag for previous
 
 	--add current chunk to total chunk time
 	f.timechunk.total.ntime = f.timechunk.total.ntime + f.timechunk.current.ntime
-print("Total: " ..f.timechunk.total.ntime)
 	--update unit data and reset the last time update
 	f:Unit_UpdateTimeActive(f.timechunk.total)
 	f:Unit_TimeReset(f.timechunk.total)
@@ -189,11 +189,9 @@ print("Total: " ..f.timechunk.total.ntime)
 end
 
 function f:ChunkTick()
-	print('tick')
 	--if we have a current chunk and were not in combat, end the chunk
 	if f.timechunk.current and not f:CombatStatus() and not f.parsingLog then
 		f:EndChunk()
-		print('end')
 	end
 end
 
@@ -216,7 +214,7 @@ function f:Unit_Check(chunk, gid, pName)
 		chunk.units[gid].nfirst = time()
 	end
 	chunk.units[gid].nlast = time() --this updates the last time the player had preformed an action (each Unit_Check use)
-	print("Unit Action: "..pName)
+	
 	return chunk.units[gid]
 end
 
@@ -232,7 +230,10 @@ function f:Unit_UpdateTimeActive(chunk)
 	--update unit time data
 	for k, v in pairs(chunk.units) do
 		if v.nlast then
-			v.ntime = v.ntime + (v.nlast - v.nfirst)
+			--since we performed an action and last action is under a second, lets give them a 1 sec
+			local dChk = (v.nlast - v.nfirst)
+			if dChk <= 0 then dChk = 1 end
+			v.ntime = v.ntime + dChk
 		end
 	end
 end
@@ -248,10 +249,13 @@ function f:Unit_TimeActive(chunk, units)
 		
 		--if a chunk is in progress, add the time to the totaltime.
 		if not chunk.endtime and units.nfirst then
-			totaltime = totaltime + (units.nlast - units.nfirst)
+			--since we performed an action and last action is under a second, lets give them a 1 sec
+			local dChk = (units.nlast - units.nfirst)
+			if dChk <= 0 then dChk = 1 end
+			totaltime = totaltime + dChk
 		end
 	end
-	
+
 	return totaltime
 end
 
@@ -354,7 +358,6 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 	--only start a session if were not currently in one, check for incombat
 	if not f.timechunk.current and band(srcFlags, GROUP_FLAGS) ~= 0 and f:CombatStatus(eventtype) then
 		f:StartChunk()
-		print('start')
 	end
 
 	-- Pet summons, guardians (only for raid/party/mine)
@@ -478,7 +481,6 @@ function f:GetChunkTimeActive(chunk)
 	elseif chunk.ntime then
 		--it's previous (or some chunk that has time)
 		return chunk.ntime
-		
 	end
 	
 	return totaltime
@@ -486,6 +488,7 @@ end
 
 function f:ResetAll()
 	f:SetScript("OnUpdate", nil) --cancel the tick timer
+	
 	if f.timechunk.previous then
 		f.timechunk.previous = nil
 	end

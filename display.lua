@@ -245,6 +245,8 @@ function display:SetViewStyle(style, session, barHeight, fontSize)
 	display:SetBackdropBorderColor(unpack(d_modes[style].bgcolor))
 	display:SetBackdropColor(0, 0, 0, XanDPS_DB.bgOpacity or 0.5)
 	viewChange = true
+	
+	display:UpdateViewStyle()
 end
 
 function display:UpdateViewStyle()
