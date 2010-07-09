@@ -160,6 +160,7 @@ fd:SetScript("OnEvent", function(self, event, ...) if self[event] then return se
 
 function fd:PLAYER_LOGIN()
 	XanDPS:Register_CL(SpellDamage, 'DAMAGE_SHIELD', {SRC_GOOD = true})
+	XanDPS:Register_CL(SpellDamage, 'DAMAGE_SPLIT', {SRC_GOOD = true})
 	XanDPS:Register_CL(SpellDamage, 'SPELL_DAMAGE', {SRC_GOOD = true})
 	XanDPS:Register_CL(SpellDamage, 'SPELL_PERIODIC_DAMAGE', {SRC_GOOD = true})
 	XanDPS:Register_CL(SpellDamage, 'SPELL_BUILDING_DAMAGE', {SRC_GOOD = true})
@@ -172,6 +173,7 @@ function fd:PLAYER_LOGIN()
 	XanDPS:Register_CL(SpellMissed, 'SPELL_PERIODIC_MISSED', {SRC_GOOD = true})
 	XanDPS:Register_CL(SpellMissed, 'RANGE_MISSED', {SRC_GOOD = true})
 	XanDPS:Register_CL(SpellMissed, 'SPELL_BUILDING_MISSED', {SRC_GOOD = true})
+	XanDPS:Register_CL(SpellMissed, 'DAMAGE_SHIELD_MISSED', {SRC_GOOD = true})
 	
 	XanDPS_Display:Register_Mode("Damage", "Player DPS", UnitDPS, { 255/255, 51/255, 51/255 }, true)
 	XanDPS_Display:Register_Mode("Damage", "Player Damage", UnitTotal, { 255/255, 51/255, 51/255 }, true)

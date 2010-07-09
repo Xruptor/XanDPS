@@ -15,6 +15,9 @@ local playerGhost = false
 local lastInstanceType = "none"
 local bgDisabled = false
 
+local PET_FLAGS = COMBATLOG_OBJECT_TYPE_PET + COMBATLOG_OBJECT_TYPE_GUARDIAN
+local GROUP_FLAGS = COMBATLOG_OBJECT_AFFILIATION_MINE + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_RAID
+
 local f = CreateFrame("Frame", "XanDPS", UIParent)
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
@@ -23,7 +26,7 @@ f.timechunk = {}
 local timerCount = 0
 local OnUpdate = function(self, elapsed)
 	timerCount = timerCount + elapsed
-	if timerCount > 1 then
+	if timerCount >= 1 then
 		self:ChunkTick()
 		timerCount = 0
 	end
@@ -99,6 +102,7 @@ function f:PLAYER_ENTERING_WORLD()
 			-- Zoned into an instance
 			if instanceNameStr ~= GetRealZoneText() then
 				instanceNameStr = GetRealZoneText()
+				--don't ask just reset
 				if XanDPS_Display then XanDPS_Display:ResetStyleView() end
 			elseif (playerGhost and instanceNameStr == GetRealZoneText() ) then
 				--the player had died and entered the same instance, lets reset switch
@@ -119,6 +123,7 @@ function f:PLAYER_ENTERING_WORLD()
 	elseif ( instanceType == "pvp" or instanceType == "arena" ) then
 		--we entered a pvp battleground or arena, check if we should show the display
 		if XanDPS_Display then
+			--don't ask just reset, instance data + pvp data = bad
 			XanDPS_Display:ResetStyleView()
 			if XanDPS_DB.hideInArenaBG and XanDPS_Display:IsVisible() then
 				XanDPS_Display:Hide()
@@ -127,7 +132,7 @@ function f:PLAYER_ENTERING_WORLD()
 		if XanDPS_DB.disableInArenaBG then
 			bgDisabled = true
 		end
-		
+	
 	else
 		--just in case ;)
 		bgDisabled = false
@@ -166,14 +171,14 @@ function f:EndChunk()
 	--save the previous chunk, in case the user wants to see the data for the last fight
 	f.timechunk.current.endtime = time()
 	f.timechunk.current.ntime = f.timechunk.current.endtime - f.timechunk.current.starttime
-
+print("Current: " ..f.timechunk.current.ntime)
 	f:Unit_UpdateTimeActive(f.timechunk.current) --update the time data for units in current chunk
 	f.timechunk.previous = f.timechunk.current --save it as previous chunk
 	f.timechunk.previous.isCurrent = false --turn off isCurrent flag for previous
 
 	--add current chunk to total chunk time
 	f.timechunk.total.ntime = f.timechunk.total.ntime + f.timechunk.current.ntime
-
+print("Total: " ..f.timechunk.total.ntime)
 	--update unit data and reset the last time update
 	f:Unit_UpdateTimeActive(f.timechunk.total)
 	f:Unit_TimeReset(f.timechunk.total)
@@ -184,9 +189,11 @@ function f:EndChunk()
 end
 
 function f:ChunkTick()
+	print('tick')
 	--if we have a current chunk and were not in combat, end the chunk
-	if f.timechunk.current and not f:CombatStatus() then
+	if f.timechunk.current and not f:CombatStatus() and not f.parsingLog then
 		f:EndChunk()
+		print('end')
 	end
 end
 
@@ -201,7 +208,7 @@ function f:Unit_Check(chunk, gid, pName)
 	
 	if not chunk.units[gid] then
 		if not pName then return nil end
-		chunk.units[gid] = {gid = gid, class = select(2, UnitClass(pName)), name = pName, nfirst = time(), ntime = 0}
+		chunk.units[gid] = {gid = gid, name = pName, class = select(2, UnitClass(pName)), nfirst = time(), ntime = 0}
 	end
 	
 	--set our time slots (this is for total not current, since total gets reset at ChunkEnd)
@@ -209,7 +216,7 @@ function f:Unit_Check(chunk, gid, pName)
 		chunk.units[gid].nfirst = time()
 	end
 	chunk.units[gid].nlast = time() --this updates the last time the player had preformed an action (each Unit_Check use)
-	
+	print("Unit Action: "..pName)
 	return chunk.units[gid]
 end
 
@@ -302,7 +309,7 @@ function f:Pet_Parse()
 end
 
 function f:Pet_Reallocate(cl_action)
-	if cl_action and not UnitIsPlayer(cl_action.unitName) then
+	if cl_action and band(cl_action.unitFlags, PET_FLAGS) ~= 0 then
 		if cl_action.unitFlags and band(cl_action.unitFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN) ~= 0 then
 			if band(cl_action.unitFlags, COMBATLOG_OBJECT_AFFILIATION_MINE) ~= 0 then
 				--if guardian belongs to player then update owner
@@ -325,10 +332,6 @@ end
 ----- NOTE: Special thanks to (zarnivoop) for Skada
 --------------------------------------------
 
---NOTE: GROUP_FLAGS is used to only parse events only if they are in a raid/party/or player(mine)
-local PET_FLAGS = COMBATLOG_OBJECT_TYPE_PET + COMBATLOG_OBJECT_TYPE_GUARDIAN
-local GROUP_FLAGS = COMBATLOG_OBJECT_AFFILIATION_MINE + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_RAID
-
 function f:Register_CL(func, event, flags)
 	if not CL_events[event] then
 		CL_events[event] = {}
@@ -340,19 +343,20 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 	if XanDPS_DB.disabled then return end
 	if bgDisabled then return end
 	
+	--we don't want to record friendly fire
+	if f:CheckFriendly(srcFlags,dstFlags) then return end
+	
 	local SRC_GOOD = nil
 	local DST_GOOD = nil
 	local SRC_GOOD_NOPET = nil
 	local DST_GOOD_NOPET = nil
 
-	--Start a chunk session if someone in raid/party/player entered combat
-	--do not start a session if someone used a summoning spell
-	if not f.timechunk.current and band(srcFlags, GROUP_FLAGS) ~= 0 and eventtype ~= 'SPELL_SUMMON' then
-		if f:CombatStatus() then
-			f:StartChunk()
-		end
+	--only start a session if were not currently in one, check for incombat
+	if not f.timechunk.current and band(srcFlags, GROUP_FLAGS) ~= 0 and f:CombatStatus(eventtype) then
+		f:StartChunk()
+		print('start')
 	end
-	
+
 	-- Pet summons, guardians (only for raid/party/mine)
 	if eventtype == 'SPELL_SUMMON' and band(srcFlags, GROUP_FLAGS) ~= 0 then
 		--if a pet summons a pet (IE Fire Elemental Totem -> Summons Greater Fire Elemental)
@@ -368,11 +372,13 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 	end
 
 	if eventtype == 'UNIT_DIED' and unitpets[dstGUID] then
-		--keep the pet array clean and small, note for some reason UNIT_DIED is not always fired
+		--keep the pet array clean and small, note for some reason UNIT_DIED is not always fired, blame blizzard
 		unitpets[dstGUID] = nil
 	end
 
 	if f.timechunk.current and CL_events[eventtype] then
+		f.parsingLog = true --to prevent onUpdate from terminating before we've parsed all the data
+		
 		for i, module in ipairs(CL_events[eventtype]) do
 			local fail = false
 			
@@ -429,6 +435,11 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 		end
 	end
 	
+	f.parsingLog = nil
+end
+
+function f:CheckFriendly(srcFlags,dstFlags)
+	return (band(srcFlags,COMBATLOG_OBJECT_REACTION_FRIENDLY)~=0) and (band(dstFlags,COMBATLOG_OBJECT_REACTION_FRIENDLY)~=0)
 end
 
 --------------------------------------------
@@ -455,7 +466,6 @@ function f:GetChunkTimeActive(chunk)
 		if chunk.ntime > 0 then
 			totaltime = chunk.ntime
 		end
-		--we need to subtract current
 		if f.timechunk.current then
 			uptTime = time() - f.timechunk.current.starttime
 		end
@@ -485,9 +495,14 @@ function f:ResetAll()
 	if f.timechunk.total then
 		f.timechunk.total = nil
 	end
+	if unitpets then
+		unitpets = {}
+	end
+	--refill the pet table
+	f:Pet_Parse()
 end
 
-function f:CombatStatus()
+function f:CombatStatus(eventtype)
 	--There are times where the player can be out of combat and the raid be still in combat.  It happens.
 	--So in those situation checking for ONLY if the player is in combat is not accurate.  So we are going
 	--to scan the raid/party for the very first person in combat.  If found then return true.
@@ -500,7 +515,29 @@ function f:CombatStatus()
 	--the reason I put the player one last, is in the event were dead but the raid/party is still fighting
 	--if this was put on the top then all combat events would stop being tracked the moment the player died
 	if UnitAffectingCombat("player") then return true end
+	if UnitAffectingCombat("pet") then return true end
 
+	--sometimes you do damage or kill something SO quickly that your not considered in combat after the event is parsed.
+	--because of this we have to track for damage based events, basically ANY DAMAGE BEING DONE
+	if eventtype then
+		local events = {
+			SWING_DAMAGE = true, 
+			RANGE_DAMAGE = true, 
+			SPELL_DAMAGE = true, 
+			SPELL_PERIODIC_DAMAGE = true, 
+			SPELL_BUILDING_DAMAGE = true,
+			DAMAGE_SHIELD = true,
+			DAMAGE_SPLIT = true,
+			SWING_MISSED = true,
+			RANGE_MISSED = true,
+			SPELL_MISSED = true,
+			SPELL_PERIODIC_MISSED = true,
+			SPELL_BUILDING_MISSED = true,
+			DAMAGE_SHIELD_MISSED = true
+		}
+		if events[eventtype] then return true end
+	end
+	
 	return false
 end
 
