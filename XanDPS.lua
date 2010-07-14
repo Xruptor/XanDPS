@@ -37,7 +37,6 @@ end
 --------------------------------------------
 
 local defaults = {
-		["bgShown"] = true,
 		["disabled"] = false,
 		["fontSize"] = 12,
 		["barHeight"] = 16,
@@ -516,12 +515,11 @@ function f:CombatStatus(eventtype)
 		if UnitAffectingCombat("party"..i) or UnitAffectingCombat("partypet"..i) then return true end
 	end
 	--the reason I put the player one last, is in the event were dead but the raid/party is still fighting
-	--if this was put on the top then all combat events would stop being tracked the moment the player died
 	if UnitAffectingCombat("player") then return true end
 	if UnitAffectingCombat("pet") then return true end
 
 	--sometimes you do damage or kill something SO quickly that your not considered in combat after the event is parsed.
-	--because of this we have to track for damage based events, basically ANY DAMAGE BEING DONE
+	--because of this we have to track for damage based events, basically ANY DAMAGE BEING DONE = you in combat
 	if eventtype then
 		local events = {
 			SWING_DAMAGE = true, 

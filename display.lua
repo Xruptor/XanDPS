@@ -272,11 +272,13 @@ function display:UpdateViewStyle()
 		
 		for k, v in pairs(dChk.units) do
 			totalC = totalC + 1
+			
 			if not display.bars[totalC] then
 				--we don't have a bar to work with so lets create one
 				local bar = display:CreateBar(display.barHeight, display.fontSize)
 				table.insert(display.bars, bar)
 			end
+			
 			local bF = display.bars[totalC]
 			--fix display if changed
 			if yUdt then
@@ -284,6 +286,7 @@ function display:UpdateViewStyle()
 				bF.left:SetFont(STANDARD_TEXT_FONT, display.fontSize)
 				bF.right:SetFont(STANDARD_TEXT_FONT, display.fontSize)
 			end
+			
 			--show all players or display only one bar with the data
 			if d_modes[display.viewStyle].showAll then
 				--store values (strip the name if name-realm
@@ -304,11 +307,21 @@ function display:UpdateViewStyle()
 				end
 				bF.vClass = "raidpartyplayer"
 			end
+			
 			bF.vGID = v.gid
 			--lets use the correct display function from our module
 			bF.vValue = tonumber(d_modes[display.viewStyle].func(dChk, v, v.gid)) or 0
+			
 			--now lets do class color
-			local color = RAID_CLASS_COLORS[bF.vClass] or {r=0.305,g=0.57,b=0.345} --forest green
+			local color = {r=0.305,g=0.57,b=0.345} --forest green for regular display
+			
+			--SUPPORT FOR PHANX CLASS COLORS
+			if (CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[bF.vClass]) then
+				color = CUSTOM_CLASS_COLORS[bF.vClass]
+			elseif (RAID_CLASS_COLORS and RAID_CLASS_COLORS[bF.vClass]) then
+				color = RAID_CLASS_COLORS[bF.vClass]
+			end
+
 			bF:SetStatusBarColor(color.r, color.g, color.b)
 			bF.bg:SetVertexColor(color.r, color.g, color.b, 0.1)
 			
