@@ -27,7 +27,6 @@
 					--several different ways of adding selects
 					self:AddSelect(lvl, "This button 1", "button1", db, "dboption1", nil, 1)
 					self:AddSelect(lvl, "This button 2", "button2", "dboption2", nil, nil, 2)
-					self:AddSelect(lvl, "This button 3", "button3", nil, nil, nil, 3)
 				end
 			end
 		end
@@ -43,7 +42,7 @@
 		
 --]]
 
-local MAJOR, MINOR = "LibXMenu-1.0", 1
+local MAJOR, MINOR = "LibXMenu-1.0", 2
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -79,6 +78,7 @@ end
 	lvl					- menu level 1,2,3 etc...
 	text				- name of the menu item
 	value				- element in the database table, used when arg1 and arg2 are both nil.  Example:  db[value]
+						  NOTE: Value of the database element must be a boolean value.  TRUE/FALSE. Example: db[value] = true
 	arg1				- custom database variable, if arg2 is nil then value is used as element.  Example:  arg1[value]
 	arg2				- custom database element for arg1.  Example:  arg1[arg2]
 	func				- define custom function for menu item
@@ -89,7 +89,7 @@ local function AddToggle(self, lvl, text, value, arg1, arg2, func, bOpt)
 	if not lvl then return end
 	if not text then return end
 	if not value then return end
-	
+
 	value = tonumber(value) or value
 	self.info.arg1 = arg1
 	self.info.arg2 = arg2
@@ -136,14 +136,12 @@ end
 	lib:AddSelect
 	lvl					- menu level 1,2,3 etc...
 	text				- name of the menu item
-	value				- 	Value in database to compare and store, default when arg1 and arg2 are nil.
+	value				- 	Value in database to compare and store.
 							If arg1 and arg2 then value is stored in the arg1[arg2] table.
 							If arg1 and not arg2 then value is stored in db[arg1] table.
-							if not arg1 and arg2 then value is stored in arg2[value] table.
-	arg1				- 	custom database variable, if arg2 then acts as primary database. Example: arg1[arg2]
+	arg1				- 	REQUIRED: database variable, if arg2 then acts as primary database. Example: arg1[arg2]
 							if not arg2 then arg1 is used as an element of the database table.  Example: db[arg1]
 	arg2				- 	custom database variable, if arg1 then acts as an element in arg1 table. Example: arg1[arg2]
-							if not arg1 then arg2 is used as custom database table with value as element.  Example: arg2[value]
 	func				- define custom function for menu item
 	bOpt				- define an optional variable to be passed to doUpdate. Example: button name or button ID.
 --]]
@@ -152,6 +150,7 @@ local function AddSelect(self, lvl, text, value, arg1, arg2, func, bOpt)
 	if not lvl then return end
 	if not text then return end
 	if not value then return end
+	if not arg1 and not arg2 then assert(false, "LibXMenu-1.0: Error, AddSelect() requires arg1") return end
 	
 	value = tonumber(value) or value
 	self.info.arg1 = arg1
@@ -163,20 +162,28 @@ local function AddSelect(self, lvl, text, value, arg1, arg2, func, bOpt)
 			arg1[arg2] = val
 		elseif arg1 then
 			item.owner.db[arg1] = val
-		elseif arg2 then
-			arg2[val] = val
-		else
-			item.owner.db[val] = val
 		end
 		local level, num = strmatch(item:GetName(), "DropDownList(%d+)Button(%d+)")
 		level, num = tonumber(level) or 0, tonumber(num) or 0
-		for i = 2, level, 1 do
+		for i = 1, level, 1 do
 			for j = 1, UIDROPDOWNMENU_MAXBUTTONS, 1 do
 				local check = _G["DropDownList"..i.."Button"..j.."Check"]
-				if check and i == level and j == num then
-					check:Show()
-				elseif item then
-					check:Hide()
+				local iObjChk = _G["DropDownList"..i.."Button"..j]
+				--make sure it's a pair in the same selection field
+				if iObjChk then
+					local passChk = false
+					if iObjChk.arg1 and iObjChk.arg2 then
+						passChk = iObjChk.arg1 == arg1 and iObjChk.arg2 == arg2
+					elseif iObjChk.arg1 then
+						passChk = iObjChk.arg1 == arg1
+					end
+					if passChk then
+						if check and i == level and j == num then
+							check:Show()
+						elseif item then
+							check:Hide()
+						end
+					end
 				end
 			end
 		end
@@ -186,10 +193,8 @@ local function AddSelect(self, lvl, text, value, arg1, arg2, func, bOpt)
 		self.info.checked = arg1[arg2] == value
 	elseif arg1 then
 		self.info.checked = self.db[arg1] == value
-	elseif arg2 then
-		self.info.checked = arg2[value] == value
 	else
-		self.info.checked = self.db[value] == value
+		self.info.checked = false
 	end
 	AddButton(self, lvl, text, 1)
 end
@@ -266,8 +271,10 @@ end
 --]]
 
 function lib:New(selfName, db)
-	if not selfName then print("LibXMenu-1.0: Error, DropDown requires a name") return end
-	if not db then print("LibXMenu-1.0: Error, DropDown requires a Database") return end
+	if not selfName then assert(false, "LibXMenu-1.0: Error, DropDown requires a name") return end
+	if not db then assert(false, "LibXMenu-1.0: Error, DropDown requires a Database.") return end
+	--Note: If you don't want to use a database, just use an empty table {}.
+	--Ex.  local dd1 = LibStub('LibXMenu-1.0'):New("DropDownName", {})
 	
 	local dd = CreateFrame("Frame", selfName, UIParent)
 	dd.db = db
