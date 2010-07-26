@@ -355,8 +355,11 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, src
 	local DST_GOOD_NOPET = nil
 
 	--only start a session if were not currently in one, check for incombat
-	if not f.timechunk.current and band(srcFlags, GROUP_FLAGS) ~= 0 and f:CombatStatus(eventtype) then
-		f:StartChunk()
+	if not f.timechunk.current and band(srcFlags, GROUP_FLAGS) ~= 0 then
+		--if things check out and were in a group, check for combat
+		if f:CombatStatus(eventtype) then
+			f:StartChunk()
+		end
 	end
 
 	-- Pet summons, guardians (only for raid/party/mine)
