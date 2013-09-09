@@ -293,14 +293,14 @@ end
 
 function f:Pet_Parse()
 	--NOTE: This function will parse party/raid/player for any given pets and add them if required.
-	if GetNumRaidMembers() > 0 then
-		for i = 1, GetNumRaidMembers(), 1 do
+	if IsInRaid() then
+		for i = 1, GetNumGroupMembers() do
 			if UnitExists("raid"..i.."pet") then
 				f:Pet_Check("raid"..i, "raid"..i.."pet")
 			end
 		end
-	elseif GetNumPartyMembers() > 0 then
-		for i = 1, GetNumPartyMembers(), 1 do
+	elseif IsInGroup() then
+		for i = 1, GetNumSubgroupMembers() do
 			if UnitExists("party"..i.."pet") then
 				f:Pet_Check("party"..i, "party"..i.."pet")
 			end
@@ -342,7 +342,7 @@ function f:Register_CL(func, event, flags)
 	tinsert(CL_events[event], {["func"] = func, ["flags"] = flags})
 end
 
-function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
+function f:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventtype, hideCaster, srcGUID, srcName, srcFlags, sourceRaidFlags, dstGUID, dstName, dstFlags, destRaidFlags, ...)
 	if XanDPS_DB.disabled then return end
 	if bgDisabled then return end
 	
@@ -511,11 +511,18 @@ function f:CombatStatus(eventtype)
 	--There are times where the player can be out of combat and the raid be still in combat.  It happens.
 	--So in those situation checking for ONLY if the player is in combat is not accurate.  So we are going
 	--to scan the raid/party for the very first person in combat.  If found then return true.
-	for i = 1, GetNumRaidMembers(), 1 do
-		 if UnitAffectingCombat("raid"..i) or UnitAffectingCombat("raidpet"..i) then return true end
-	end
-	for i = 1, GetNumPartyMembers(), 1 do
-		if UnitAffectingCombat("party"..i) or UnitAffectingCombat("partypet"..i) then return true end
+	if IsInRaid() then
+		for i = 1, GetNumGroupMembers() do
+			if UnitExists("raid"..i) then
+				if UnitAffectingCombat("raid"..i) or UnitAffectingCombat("raidpet"..i) then return true end
+			end
+		end
+	elseif IsInGroup() then
+		for i = 1, GetNumSubgroupMembers() do
+			if UnitExists("party"..i) then
+				if UnitAffectingCombat("party"..i) or UnitAffectingCombat("partypet"..i) then return true end
+			end
+		end
 	end
 	--the reason I put the player one last, is in the event were dead but the raid/party is still fighting
 	if UnitAffectingCombat("player") then return true end

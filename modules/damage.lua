@@ -88,7 +88,7 @@ local function log_data(chunk, dmg)
 	end
 end
 
-local function SpellDamage(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
+local function SpellDamage(timestamp, eventtype, hideCaster, srcGUID, srcName, srcFlags, sourceRaidFlags, dstGUID, dstName, dstFlags, destRaidFlags, ...)
 	if srcGUID ~= dstGUID then
 		local spellId, spellName, spellSchool, samount, soverkill, sschool, sresisted, sblocked, sabsorbed, scritical, sglancing, scrushing = ...
 
@@ -104,7 +104,7 @@ local function SpellDamage(timestamp, eventtype, srcGUID, srcName, srcFlags, dst
 	end
 end
 
-local function SwingDamage(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
+local function SwingDamage(timestamp, eventtype, hideCaster, srcGUID, srcName, srcFlags, sourceRaidFlags, dstGUID, dstName, dstFlags, destRaidFlags, ...)
 	if srcGUID ~= dstGUID then
 		local samount, soverkill, sschool, sresisted, sblocked, sabsorbed, scritical, sglancing, scrushing = ...
 		
@@ -120,7 +120,7 @@ local function SwingDamage(timestamp, eventtype, srcGUID, srcName, srcFlags, dst
 	end
 end
 
-local function SwingMissed(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
+local function SwingMissed(timestamp, eventtype, hideCaster, srcGUID, srcName, srcFlags, sourceRaidFlags, dstGUID, dstName, dstFlags, destRaidFlags, ...)
 	if srcGUID ~= dstGUID then
 
 		dmg.unitGUID = srcGUID
@@ -135,7 +135,7 @@ local function SwingMissed(timestamp, eventtype, srcGUID, srcName, srcFlags, dst
 	end
 end
 
-local function SpellMissed(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
+local function SpellMissed(timestamp, eventtype, hideCaster, srcGUID, srcName, srcFlags, sourceRaidFlags, dstGUID, dstName, dstFlags, destRaidFlags, ...)
 	if srcGUID ~= dstGUID then
 		local spellId, spellName, spellSchool, missType, samount = ...
 		

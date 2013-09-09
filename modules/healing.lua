@@ -143,7 +143,7 @@ local function log_data(chunk, heal)
 	end
 end
 
-local function SpellHeal(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
+local function SpellHeal(timestamp, eventtype, hideCaster, srcGUID, srcName, srcFlags, sourceRaidFlags, dstGUID, dstName, dstFlags, destRaidFlags, ...)
 	local spellId, spellName, spellSchool, samount, soverhealing, absorbed, scritical = ...
 	
 	heal.unitGUID = srcGUID
