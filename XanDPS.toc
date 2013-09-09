@@ -1,4 +1,4 @@
-## Interface: 30300
+## Interface: 50300
 ## Title: XanDPS
 ## Notes: A very simple DPS meter based off PicoDPS and Skada.
 ## Author: Xruptor
